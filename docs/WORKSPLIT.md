@@ -4,11 +4,13 @@ Each lane owns its directories outright. Interfaces cross lanes only through `do
 
 | Lane | Person | Owns | Physically at the rig? |
 |---|---|---|---|
-| **PM: Integration, test, release** | PM (the machine wired to the Jetson) | `main` branch, `ci/`, `.github/`, `docs/INTEGRATION.md`, `docs/SCOPE.md`, release tags, on-rig deploys, final E2E acceptance; co-owns `web/` with D | Yes (USB + tailnet) |
-| **A: Rig & hardware** | A | `rig/` (rigd, drivers, idle programs, provisioning, systemd, USB hardening), `tickets/` | Yes |
-| **B: Verifier & camera** | B | `verifier/`, enclosure/lighting spec, ticket `assertions.json` review | Yes |
-| **C: Tailnet, control plane & Devin** | C | `tailnet/` (ACL policy, key minting), `control/` (backend), `session-kit/`, `experiments/`, `docs/CONTRACTS.md` | No |
-| **D: Frontend, story & submission** | D (+PM on frontend) | `web/`, `docs/pitch/`, `docs/media/`, `README.md`, `docs/SUBMISSION.md` | No (needs the rig for filming) |
+| **PM: Integration, test, release** | Ravindra Lakkireddy (`@rlakki08`), on the machine wired to the Jetson | `main` branch, `ci/`, `.github/`, `docs/INTEGRATION.md`, `docs/SCOPE.md`, release tags, on-rig deploys, final E2E acceptance; co-owns `web/` with D | Yes (USB + tailnet) |
+| **A: Rig & hardware** | Ravindra Lakkireddy (`@rlakki08`, same person as PM) | `rig/` (rigd, drivers, idle programs, provisioning, systemd, USB hardening), `tickets/` | Yes |
+| **B: Verifier & camera** | Subham Dash (`@subatomic-hamster`) | `verifier/`, enclosure/lighting spec, ticket `assertions.json` review | Yes |
+| **C: Tailnet, control plane & Devin** | Adrian Arokiyaselvam (`@aarokiya`) | `tailnet/` (ACL policy, key minting), `control/` (backend), `session-kit/`, `experiments/`, `docs/CONTRACTS.md` | No |
+| **D: Frontend, story & submission** | Anshul Kollur (`@anshulk08`, +PM on frontend) | `web/`, `docs/pitch/`, `docs/media/`, `README.md`, `docs/SUBMISSION.md` | No (needs the rig for filming) |
+
+Lane A and PM are the same person, so A's own PRs need one other teammate's approval (B for anything touching the verifier hand-over, otherwise C).
 
 **Shared touch points (contract only):**
 - A↔B: verifier local API (C5) and idle patterns (C8)
