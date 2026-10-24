@@ -87,12 +87,14 @@ function StepTable({ r, camera }: { r: AssertionResult; camera: boolean }) {
                 </td>
                 <td className={ledBad ? "ev-cell-bad" : undefined}>
                   <Bank step={s.measured} n={n} expected={camera ? s.expected : null} />
+                  {ledBad && <span className="ev-sr"> (does not match expected)</span>}
                 </td>
                 <td className="mono">{s.expected ? `${s.expected.ms} ms` : "—"}</td>
                 <td className={`mono${timeBad ? " ev-cell-bad" : ""}`}>
                   {s.measured && Number.isFinite(s.measured.ms) ? (
                     <>
                       {Math.round(s.measured.ms)} ms {pm && <span className="ev-dim">{pm}</span>}
+                      {timeBad && <span className="ev-sr"> (outside tolerance)</span>}
                     </>
                   ) : (
                     "not measured"

@@ -57,7 +57,12 @@ export function resolveSource(pathname: string, search: string): EvidenceSource 
     return { id: name, jsonUrl: `${baseUrl}evidence.json`, baseUrl, fixture: true };
   }
   const m = pathname.match(/^\/e\/([^/]+)\/?$/);
-  const id = m ? decodeURIComponent(m[1]) : q.get("id");
+  let id: string | null;
+  try {
+    id = m ? decodeURIComponent(m[1]) : q.get("id");
+  } catch {
+    id = null; // malformed %-escape in the path
+  }
   if (!id || !SAFE_ID.test(id)) return { id: null, jsonUrl: null, baseUrl: null, fixture: false };
   const baseUrl = `/e/${encodeURIComponent(id)}/`;
   return { id, jsonUrl: `${baseUrl}evidence.json`, baseUrl, fixture: false };

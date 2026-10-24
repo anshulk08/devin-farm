@@ -134,7 +134,7 @@ function Bundle({ bundle: b, source }: { bundle: EvidenceBundle; source: Evidenc
 
       <div className="ev-grid">
         <section className="ev-media" aria-label="Recording">
-          <Clip base={base} />
+          <Clip base={base} sample={sample} />
           <Frames bundle={b} base={base} />
         </section>
         <Meta b={b} />

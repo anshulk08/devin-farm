@@ -86,6 +86,7 @@ describe("source resolution", () => {
   });
   it("falls back to ?id=", () => {
     expect(resolveSource("/evidence.html", "?id=x_9").jsonUrl).toBe("/e/x_9/evidence.json");
+    expect(resolveSource("/e/%E0%A4%A", "").id).toBeNull(); // malformed escape must not throw
   });
   it("loads fixtures", () => {
     expect(resolveSource("/evidence.html", "?fixture=1").baseUrl).toBe("/fixtures/evidence/demo-fail/");

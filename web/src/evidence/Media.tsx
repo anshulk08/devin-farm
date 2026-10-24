@@ -4,7 +4,7 @@ import { frameCandidates, type EvidenceBundle } from "./model";
 
 const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export function Clip({ base }: { base: string }) {
+export function Clip({ base, sample = false }: { base: string; sample?: boolean }) {
   const [kind, setKind] = useState<"mp4" | "gif" | "none">("mp4");
   const [reduce] = useState(reducedMotion);
   const [showGif, setShowGif] = useState(!reduce);
@@ -21,22 +21,26 @@ export function Clip({ base }: { base: string }) {
           controls
           preload="metadata"
           onError={() => setKind("gif")}
-          aria-label="Clip recorded by the Farm camera, with the assertion, measured value, verdict and timestamp burned in"
+          aria-label={sample ? "Sample clip, not camera footage" : "Clip recorded by the Farm camera, with the assertion, measured value, verdict and timestamp burned in"}
         />
-        <figcaption>Recorded by the Farm camera. The overlay shows the assertion, the measured value, the verdict and the time.</figcaption>
+        <figcaption>
+          {sample
+            ? "Sample clip for development, not camera footage."
+            : "Recorded by the Farm camera. The overlay shows the assertion, the measured value, the verdict and the time."}
+        </figcaption>
       </figure>
     );
   if (kind === "gif")
     return (
       <figure className="ev-clip">
         {showGif ? (
-          <img src={`${base}clip.gif`} alt="Animated clip recorded by the Farm camera" onError={() => setKind("none")} />
+          <img src={`${base}clip.gif`} alt={sample ? "Sample animated clip, not camera footage" : "Animated clip recorded by the Farm camera"} onError={() => setKind("none")} />
         ) : (
           <button type="button" className="ev-clip-play" onClick={() => setShowGif(true)}>
             Play the animated clip
           </button>
         )}
-        <figcaption>Recorded by the Farm camera (animated GIF; the MP4 was not available).</figcaption>
+        <figcaption>{sample ? "Sample animated clip, not camera footage." : "Recorded by the Farm camera (animated GIF; the MP4 was not available)."}</figcaption>
       </figure>
     );
   return (
