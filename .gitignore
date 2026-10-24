@@ -11,3 +11,6 @@ dist-public/
 tickets/*/assertions.json
 tickets/*/NOTES-private.md
 tickets/*/reference/
+
+# rendered video masters (600MB+), kept local
+docs/media/video/mov/
