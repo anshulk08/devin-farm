@@ -1,159 +1,180 @@
-# CONTRACTS v0.2 (single source of truth: `docs/CONTRACTS.md`)
+# CONTRACTS v1.0-draft (single source of truth)
 
-Changes from v0.1 (the laptop hub became an always-on Jetson rig): rig identity and health (C1, C3), longer renewable leases and a priority key (C1, C2), `quiet` mode so the observer stays out of the way during benchmarks (C4, C5), `jetson-1` redefined as a sandbox lane driven by trusted code (C5, C9), new C11 trust boundaries and C12 rig operations.
+Replaces v0.2 (cloud broker). Owner: **Person C** (integration). Change process: open a PR that touches only this file, then announce it in the team channel. Freeze at T+1.5. All bodies are JSON; times are Unix seconds (float); IDs are strings.
 
-All times are Unix seconds (float). All bodies are JSON. IDs are strings. Device ids: `unoq-1`, `pico-1`, `jetson-1`. Device types: `unoq`, `pico`, `jetson`. Rig id: `rig-1`.
+Naming: rigs `rig-<n>`; devices `<type>-<n>` and **globally unique** (`pico-1`, `unoq-1`, `pico-2` on rig-2). Device types: `pico`, `unoq` (stretch: `jetson`). Sessions: `farm_id` = `s-<8 hex>` assigned by control; tailnet hostname `devin-<farm_id>`.
 
-## C0. Environment variables (never commit values)
-| Name | Used by | Meaning |
-|---|---|---|
-| `FARM_BROKER_URL` | node, observer, Devin sessions, dashboard | Public base URL of the broker, e.g. `https://farm.example.app` |
-| `FARM_API_KEY` | Devin sessions to broker | Bearer token for the session-facing REST/MCP tools (normal priority) |
-| `FARM_DEMO_KEY` | demo sessions | Bearer token whose requests jump the queue (priority key, broker config) |
-| `FARM_ADMIN_TOKEN` | humans, `rig/` scripts | Admin endpoints (`/v1/admin/*`) |
-| `NODE_TOKEN` | node to broker | Bearer token for `/ws/node` |
-| `OBSERVER_TOKEN` | observer to broker | Bearer token for `/ws/observer` and `POST /v1/evidence` |
-| `DEVIN_API_KEY` | `devin/` scripts | Devin service-user key (`cog_...`) |
-| `GITHUB_TOKEN` | broker | For commit status / PR comments (optional) |
-On the rig the node and observer read their tokens from `/etc/farm/env` (root-owned, mode 600, never in git).
+## C0. Tailnet
 
-## C1. Session-facing REST API (what Devin sessions call; implemented by the broker)
-Auth header on every call: `Authorization: Bearer $FARM_API_KEY`. Calls that act on a lease also send `X-Fencing-Token: <int>`.
-
-- `GET /v1/devices` returns `[{id, type, status: "free"|"leased"|"offline", queue_depth, description_md, visible_outputs: ["unoq.matrix","unoq.rgb1",...], observers: ["camera","bench"]}]`
-- `GET /v1/rig` returns `{rig_id, online, since, node_online, observer_online, camera_ok, temp_c, load1, mem_free_mb, throttled, devices: [{id, status}]}`
-- `GET /v1/describe?device=<id>` returns markdown: what the device is, wiring, ticket rules, gotchas, assertion examples (assembled from node-provided `describe_md`).
-- `POST /v1/leases` body `{device, ttl_s (default 300, max 900), wait_s (default 60, max 120), session_id?}`. Blocks up to `wait_s`.
-  - 200 `{lease_id, token, device, expires_at, max_hold_until}` when granted (`token` is the monotonic fencing token, an integer).
-  - 202 `{queued: true, lease_id, position}` if still waiting after `wait_s` (poll `GET /v1/leases/{lease_id}`).
-  - 409 if the device is offline (`error.code: "device_offline"`, with the reason from the rig if known).
-- `GET /v1/leases/{lease_id}` returns `{state: "queued"|"active"|"released"|"expired", position?, expires_at?, token?}`
-- `POST /v1/leases/{lease_id}/renew` returns `{expires_at}`. Any lease-scoped call also renews the TTL. A session may keep a device for as long as it keeps working, up to `max_hold_s` = 1800 from grant; no permanent locks.
-- `POST /v1/leases/{lease_id}/run` body `{repo_url, sha, path}` returns 202 `{run_id}`. The node clones `repo_url` at `sha`, reads `<path>/farm.yaml`, builds and starts the program on the device (or the sandbox for `jetson-1`).
-- `GET /v1/runs/{run_id}` returns `{state: "queued"|"building"|"running"|"failed"|"stopped", build_log_tail, started_at, build_time_s?}`
-- `GET /v1/runs/{run_id}/logs?since=<ts>` returns `{lines: [{ts, text}], next}`
-- `POST /v1/leases/{lease_id}/observe` body `{assertions: [<C5>...], duration_s (default 10, max 60)}`. Blocks until done (the verification report may change this to poll). Returns 200 `{results: [<C5 result>...], evidence_url, clip_url, frame_urls: []}`
-- `POST /v1/leases/{lease_id}/release` returns 200. The broker tells the node to reset the device to idle.
-- Errors: `{error: {code, message}}`. 401 bad auth, 403 stale/missing fencing token or lease not owned, 404 unknown id, 409 state conflict, 429 rate limit. Messages are written so an LLM knows what to call next.
-- Optional MCP wrapper (Streamable HTTP) exposes the same operations as tools `farm_describe`, `farm_acquire`, `farm_run`, `farm_status`, `farm_logs`, `farm_observe`, `farm_release`, `farm_rig`.
-- Admin (`FARM_ADMIN_TOKEN`): `POST /v1/admin/reset_all` (reset every device), `POST /v1/admin/maintenance {on: bool}` (stop granting new leases; existing ones finish), `GET /v1/admin/leases`.
-
-## C2. Lease semantics (broker)
-- One active lease per device (exclusive). FIFO queue with aging. Requests made with `FARM_DEMO_KEY` go to the front of the queue (never preempt an active lease).
-- Fencing token: monotonic integer per device, persisted; each grant increments it.
-- TTL default 300 s, renewed on any lease-scoped call, hard cap `max_hold_s` 1800. On expiry or session death: broker sends `reset` to the node, marks the lease `expired`, grants the next waiter only after the node acks the reset (20 s timeout, flagged).
-- Rig or node disconnect: devices become `offline`; active leases get a 30 s grace period, then are expired. On reconnect the broker sends `reset` for every device before granting anything.
-- Node must reject any command whose token is lower than the highest token it has seen for that device.
-
-## C3. Node WebSocket (`wss://$FARM_BROKER_URL/ws/node?node_id=rig-1`, header `Authorization: Bearer $NODE_TOKEN`)
-Every message: `{type, id?, ...}`.
-
-Broker to node:
-- `deploy {id, device, lease_id, token, repo_url, sha, path}`
-- `stop {id, device, lease_id, token}`
-- `reset {id, device, token?}` (reset to idle, always allowed)
-- `bench {id, device, lease_id, token, spec}` (run the trusted benchmark in the `jetson-1` lane; see C5)
-- `ping {}`
-
-Node to broker:
-- `hello {node_id, rig: {model, jetpack, python, ram_mb}, devices: [{id, type, visible_outputs: [...], describe_md, version}]}` (sent on every connect)
-- `state {device, lease_id?, run_id?, state: "idle"|"deploying"|"building"|"running"|"failed"|"resetting"|"offline", detail?}`
-- `log {device, lease_id?, ts, text}`
-- `rig_status {ts, temp_c, load1, mem_free_mb, disk_free_mb, throttled, usb: [{id, present}]}` every 5 s
-- `ack {id, ok: true|false, error?}`; `bench_result {id, ok, result|error}`
-- `pong {}`
-
-## C4. Observer WebSocket (`/ws/observer`, header `Authorization: Bearer $OBSERVER_TOKEN`)
-Broker to observer:
-- `observe {id, device, lease_id, run_id, assertions: [...], duration_s}`
-- `calibrate {id, device}`
-- `quiet {id, on: bool, max_s}`: stop CV and the MJPEG stream (keep the camera open, capture raw frames only if cheap) so a benchmark is not perturbed. The observer auto-clears quiet after `max_s` even if the broker never sends `on:false`.
-
-Observer to broker:
-- `hello {rig_id, cameras: [...], devices: [{id, calibrated: bool}], stream_url}`
-- `observe_result {id, results: [...], clip_path?, frame_paths?}`. Clips and frames are uploaded first with `POST /v1/evidence` (multipart: `file`, `lease_id`, `kind`), which returns `{url}`; results then reference those URLs.
-- `calibrated {id, ok, detail}`; `ack {id, ok}` (for `quiet`)
-- Live view: the observer serves `GET <stream_url>` as MJPEG; the broker proxies it at `GET /v1/camera` (and per-device crops are the dashboard's job using normalised ROI boxes from `GET /v1/devices/{id}/roi`, returned as `{x, y, w, h}` in 0..1). Public viewing is read-only.
-
-## C5. Assertions and results
-Assertion (request):
-```json
-{"type": "matrix_text", "target": "unoq.matrix", "text": "DEVIN", "scroll_cols_per_s": 10, "tol_pct": 25}
-{"type": "matrix_frame", "target": "unoq.matrix", "ascii": ["<13 chars: # or .>", "... 8 rows"], "tol_cells": 2}
-{"type": "led_state",   "target": "pico.led", "state": "on"}
-{"type": "led_blink",   "target": "pico.led", "hz": 2.0, "tol_pct": 10}
-{"type": "rgb_color",   "target": "unoq.rgb1", "color": "green"}
-{"type": "log_contains","pattern": "READY"}
-{"type": "bench", "target": "jetson", "spec": {"entry": "task.py:run", "inputs": "inputs.npz", "reference": "ref.npz",
-   "atol": 0.001, "warmup": 20, "iters": 200, "min_fps": 30, "max_p95_ms": 40}}
+**Tags and ACL** (tailnet policy file; owner C; the human applies it):
+```jsonc
+{
+  "tagOwners": {
+    "tag:rig":           ["autogroup:admin"],
+    "tag:control":       ["autogroup:admin"],
+    "tag:devin-session": ["tag:control", "autogroup:admin"]
+  },
+  "groups": { "group:team": ["<emails>"] },
+  "grants": [
+    { "src": ["tag:devin-session"], "dst": ["tag:rig"],     "ip": ["tcp:8080"] },
+    { "src": ["tag:control"],       "dst": ["tag:rig"],     "ip": ["tcp:8080", "tcp:8081"] },
+    { "src": ["group:team"],        "dst": ["tag:rig"],     "ip": ["*"] },
+    { "src": ["group:team"],        "dst": ["tag:control"], "ip": ["*"] }
+  ],
+  "ssh": [{ "action": "accept", "src": ["group:team"], "dst": ["tag:rig"], "users": ["farm"] }],
+  "nodeAttrs": [{ "target": ["tag:control"], "attr": ["funnel"] }]
+}
 ```
-Routing: `matrix_*`, `led_*`, `rgb_color` go to the observer; `bench` goes to the node (which invokes `jetson_bench` against the sandbox lane); `log_contains` is evaluated by the broker over node logs.
+Sessions can't reach each other, control, rig SSH, or port 8081 (admin).
 
-**Bench orchestration (broker owns it):** send `quiet on` to the observer (max_s = bench timeout + 10), wait for ack, send `bench` to the node, wait for `bench_result`, send `quiet off` in a `finally`. Other camera assertions in the same observe call run before or after the bench window, never during it. The bench result includes the rig's own `temp_c` and `throttled` flags so a hot rig is reported rather than hidden.
+**Session join keys:** control mints one per session using an OAuth client (`auth_keys` scope): `reusable=false, ephemeral=true, preauthorized=true, tags=[tag:devin-session], expirySeconds=3600`. It's delivered to the session as the secret `TS_AUTHKEY`, alongside `FARM_ID`.
 
-Result (response), one per assertion:
+**Session join (`session-kit/farm-join.sh`):** install tailscale. If `sudo` and `/dev/net/tun` are available, use normal mode. Otherwise run `tailscaled --tun=userspace-networking --outbound-http-proxy-listen=localhost:1055 --socks5-server=localhost:1055 --state=mem:`, then `tailscale up --authkey=$TS_AUTHKEY --hostname=devin-$FARM_ID`, and export `FARM_PROXY=http://localhost:1055` if userspace. The `farm` CLI passes `-x $FARM_PROXY` when set.
+
+**Ports on a rig** (bound to the rig's tailnet IP only, never 0.0.0.0):
+- `:8080` session API (C1)
+- `:8081` control/admin API + event stream (C3, C4)
+- `127.0.0.1:8090` verifier, local only (C5)
+
+## C1. Rig session API (`http://<rig>:8080`, owner A)
+
+**Identity:** rigd resolves every request's source IP with `tailscale whois --json` (or LocalAPI `/localapi/v0/whois`). The holder is `{node_name, tags}`. Requests from nodes without `tag:devin-session` or `group:team` membership get 403. A lease belongs to the node that acquired it; lease-scoped calls must come from that node **and** carry `X-Fencing-Token`.
+
+- `GET /v1/rig` → `{rig_id, online: true, model, temp_c, load1, mem_free_mb, throttled, camera_ok, verifier_online, maintenance, devices: [<device>]}`
+- `GET /v1/devices` → `[<device>]`, where `<device>` = `{id, type, status: "free"|"leased"|"resetting"|"offline", holder?: node_name, queue_depth, outputs: ["pico.led", ...], describe_url}`
+- `GET /v1/devices/{id}/describe` → markdown: board facts, wiring, how to write a program, gotchas, assertion examples
+- `POST /v1/leases` `{device, ttl_s?: 300 (max 900), wait_s?: 20 (max 25)}`
+  - 200 `{lease_id, device, token, expires_at, max_hold_until}`
+  - 202 `{lease_id, queued: true, position}`. Poll `GET /v1/leases/{id}`; the queue slot is held while you poll at least every 30 s
+  - 409 `device_offline` / `maintenance`
+- `GET /v1/leases/{id}` → `{state: "queued"|"active"|"released"|"expired"|"revoked", position?, token?, expires_at?}`
+- `POST /v1/leases/{id}/renew` → `{expires_at}`. Any lease-scoped call also renews. Hard cap 1800 s from grant.
+- `POST /v1/leases/{id}/run` `{repo_url, sha, path}` → 202 `{run_id}`
+- `GET /v1/runs/{run_id}` → `{state: "queued"|"fetching"|"building"|"running"|"failed"|"stopped", error?: {code, message, log_tail}, build_time_s?}`
+- `GET /v1/runs/{run_id}/logs?since=<ts>` → `{lines: [{ts, text}], next}`
+- `POST /v1/leases/{id}/verify` `{assertions: [<C6>], duration_s?: 10 (max 30)}` → 202 `{verify_id}`
+- `GET /v1/verify/{verify_id}?wait=<s≤25>` → `{state: "pending"|"done"|"error", results?: [<C6 result>], evidence?: {id, local_url}}`. Long-polls until done or `wait`.
+- `POST /v1/leases/{id}/release` → 200
+
+**Errors:** `{error: {code, message, next}}`, where `next` is the call the agent should make. Codes: `not_on_tailnet` 403, `not_holder` 403, `stale_token` 403, `unknown` 404, `device_offline` 409, `busy` 409, `maintenance` 409, `rate_limited` 429, `lint_failed` 422, `build_failed` (run state).
+
+## C2. Lease semantics (rigd, per device)
+
+- Exactly one active lease per device. FIFO queue with aging. A node may hold at most 2 active leases rig-wide.
+- The fencing token is a monotonic integer per device, persisted in SQLite, incremented on every grant.
+- TTL 300 s, renewed by any lease-scoped call; hard cap 1800 s. Also ended when the holder's node is absent from `tailscale status` for 30 s, or on admin revoke.
+- **Hand-over:** end lease → stop program → reset to idle → verifier `confirm_idle` (≤ 10 s) → grant the next waiter. If idle can't be confirmed, the device becomes `offline` with a reason and the queue stays put; the team is alerted on the map.
+- On rigd start, every device is reset and idle-confirmed before any grant.
+- Queued requests whose node stops polling for 30 s are dropped.
+
+## C3. Rig control API (`http://<rig>:8081`, only `tag:control` and `group:team`, owner A)
+
+- `GET /v1/state` → full snapshot `{rig: <C1 rig>, devices: [<device> + {lease?: {lease_id, holder, token, granted_at, expires_at}, queue: [{lease_id, holder, position, since}], last_verdict?: {verify_id, passed, at}}], camera: {ok, fps, last_frame_age_s}}`
+- `GET /v1/events` → SSE (C4)
+- `GET /v1/devices/{id}/snapshot.jpg` → current **cropped** ROI frame from the verifier (rate limit 1/s)
+- `GET /v1/evidence/{id}` and `/v1/evidence/{id}/{file}` → evidence bundle (C7) for control to republish
+- Admin (team only; rigd checks `group:team` via whois): `POST /v1/admin/maintenance {on}`, `POST /v1/admin/devices/{id}/reset`, `POST /v1/admin/leases/{id}/revoke`
+
+## C4. Event stream (rig `:8081/v1/events`, and control re-emits at `/api/events`)
+
+SSE events: `event: <name>`, `data: <json>`. Every payload has `rig_id`, `ts`.
+- `rig_health {temp_c, load1, mem_free_mb, throttled, camera_ok, verifier_online}` every 5 s
+- `device {device, status, holder?, queue_depth}`
+- `lease {device, lease_id, holder, event: "queued"|"granted"|"renewed"|"released"|"expired"|"revoked", position?}`
+- `run {device, run_id, state}`
+- `log {device, run_id, ts, text}` (rate-capped at 20/s)
+- `verify {device, verify_id, state, results?}`
+- `evidence {device, evidence_id, passed}`
+
+Control adds:
+- `session {farm_id, devin_session_id, node_name?, status, acus, title, url}`
+- `session_message {farm_id, source: "user"|"devin", text, ts}`
+- `graph_snapshot {nodes, edges}` (on connect; see FRONTEND.md for the schema)
+
+## C5. Verifier local API (`127.0.0.1:8090`, owner B; rigd is the only client)
+
+- `GET /health` → `{ok, fps, last_frame_age_s, calibrated: {<device>: bool}}`
+- `POST /observe` `{device, assertions, duration_s, run_id}` → `{results, evidence_dir}` (blocking; rigd wraps it as async verify)
+- `POST /confirm_idle` `{device}` → `{ok, detail, measured}` (checks the C8 idle pattern)
+- `POST /calibrate` `{device}` → `{ok, detail}`
+- `GET /snapshot?device=<id>` → JPEG, cropped to ROI
+- `GET /stream?device=<id>` → MJPEG, cropped, ≤ 10 fps
+- `POST /quiet {on, max_s}` (reserved for the stretch GPU lane)
+
+## C6. Assertions and results
+
 ```json
-{"type": "led_blink", "target": "pico.led", "passed": false,
- "measured": {"hz": 1.1, "jitter_ms": 14}, "expected": {"hz": 2.0, "tol_pct": 10},
- "uncertainty": {"hz": 0.07}, "detail": "blink period 0.91 s; expected 0.5 s"}
+{"type": "led_sequence", "target": "pico.leds", "steps": [{"on": [0,2], "ms": 500}, {"on": [1], "ms": 500}], "repeat": 3, "tol_ms": 80}
+{"type": "matrix_frame", "target": "unoq.matrix", "ascii": ["13 chars # or .", "... 8 rows"], "tol_cells": 2, "hold_s": 2}
+{"type": "matrix_text",  "target": "unoq.matrix", "text": "DEVIN", "scroll_cols_per_s": 10, "tol_pct": 25}
+{"type": "led_blink",    "target": "pico.led", "hz": 2.0, "duty": 0.3, "tol_pct": 10}
+{"type": "led_state",    "target": "pico.led", "state": "on"}
+{"type": "rgb_color",    "target": "unoq.rgb1", "color": "green"}
+{"type": "log_contains", "pattern": "READY"}
 ```
-Every measurement states its uncertainty (frame period, threshold margins). Never report a pass without a measured value.
+- `led_sequence`: `pico.leds` is an indexed LED bank. Index 0 is the onboard LED (GP25); indices 1+ are external LEDs on fixed GPIOs listed in the Pico's describe (default GP16–GP19). Matching is step-order + per-step duration within `tol_ms` (≥ one frame period).
+- `matrix_frame`: the 8×13 Uno Q matrix after homography from calibration corners; per-cell on/off; must hold for `hold_s`.
+- Routing: `log_contains` is evaluated by rigd over run logs and **always returns `"self_reported": true`**; everything else goes to the verifier.
 
-`jetson_bench` command line (owned by the observer direction, invoked by the node):
-`python3 -m jetson_bench run --task-dir <dir> --spec <spec.json> --out <result.json>`. The result JSON has `{ok, correct: bool, max_abs_err, fps, p50_ms, p95_ms, power_mode, temp_c, throttled, notes}`. The harness runs the agent's task inside the sandbox container (C11) and measures around the call from outside.
-
-## C6. Evidence (`evidence.json`, stored by the broker, served at an unguessable public URL)
+Result, one per assertion:
 ```json
-{"lease_id": "...", "run_id": "...", "device": "unoq-1", "repo_url": "...", "sha": "...",
- "started_at": 0.0, "finished_at": 0.0, "build_time_s": 0.0,
- "assertions": [<C5 result>...], "clip_url": "...", "frame_urls": [], "logs_tail": ["..."],
- "rig": {"rig_id": "rig-1", "temp_c": 0.0, "throttled": false}}
+{"type": "led_sequence", "target": "pico.leds", "passed": false,
+ "measured": {"steps": [{"on": [0,2], "ms": 498}, {"on": [0,1], "ms": 503}]}, "expected": {...},
+ "uncertainty": {"ms": 33}, "detail": "step 2: LED 0 still on (expected only LED 1)", "self_reported": false}
 ```
+No pass without a measured value. If the device is not visible (uncalibrated, camera down, drift), the result is `passed: false` with the reason.
 
-## C7. Dashboard stream (`GET /v1/stream`, Server-Sent Events, no auth in dev, read-only token in prod)
-Event names and data:
-- `device_update {device, status, lease_id?, session_id?}`
-- `lease_event {lease_id, device, event: "queued"|"acquired"|"renewed"|"released"|"expired"|"reclaimed", ts}`
-- `run_update {run_id, device, state}`
-- `log {device, ts, text}`
-- `observe_result {lease_id, device, results}`
-- `evidence {lease_id, device, evidence_url, clip_url}`
-- `rig {temp_c, load1, mem_free_mb, throttled, online}` (every 5 s)
+## C7. Evidence bundle (stored on the rig, republished by control)
 
-## C8. Ticket format (`farm.yaml` in every ticket directory)
+`/var/lib/farm/evidence/<id>/` containing `evidence.json`, `clip.mp4`, `clip.gif` (< 3 MB), `frame-*.jpg`.
+```json
+{"evidence_id": "...", "rig_id": "rig-1", "device": "pico-1", "holder": "devin-s-1a2b3c4d", "farm_id": "s-1a2b3c4d",
+ "repo_url": "...", "sha": "...", "run_id": "...", "verify_id": "...", "started_at": 0, "finished_at": 0,
+ "results": [<C6 result>], "rig": {"temp_c": 0, "throttled": false}, "verifier_version": "..."}
+```
+Public URL (control, Funnel): `https://<control>.<tailnet>.ts.net/e/<evidence_id>`, where `evidence_id` is 128-bit random. The clip has a burned-in overlay: assertion, measured value, verdict, timestamp, "recorded by the Farm camera".
+
+## C8. Idle patterns (verifier calibrates and confirms from these)
+
+- `pico-1`: LED 0 blinks at 0.5 Hz; external LEDs off.
+- `unoq-1`: matrix shows the four corner pixels steady plus a centre heartbeat at 0.5 Hz; RGB off.
+Idle programs live in `rig/idle/<type>/`, owned by A.
+
+## C9. Ticket format (`farm.yaml` in each ticket dir, owner D)
+
 ```yaml
-device_type: unoq        # unoq | pico | jetson
-entry: python/main.py     # unoq: app dir root is the ticket dir; pico: main.py; jetson: task.py:run
+device_type: pico          # pico | unoq
+entry: main.py             # pico: main.py; unoq: app dir root (app.yaml, python/main.py, sketch/...)
 timeout_s: 120
-visible_output: unoq.matrix
-default_assertions: []    # optional list of C5 assertions
+outputs: [pico.leds]
 ```
-Ticket repo: a Git repo with one directory per ticket, e.g. `unoq/scroll-devin/`, `pico/blink-pattern/`, `jetson/preproc-speed/`. Each also has `TICKET.md` (the text Devin receives), a starter, and (kept in a separate private `reference/` branch or folder not visible to Devin) a reference solution. Jetson tickets are bench-only: correctness plus speed against trusted inputs; the visible effect is the rig status LED (C9) plus the dashboard.
+`TICKET.md` is the text the session receives (device type, not device id; "verify before claiming done"). `assertions.json` is the hidden grading spec (not in the public ticket repo). The reference solution lives in a private branch.
 
-## C9. Idle and status patterns (the observer calibrates from these)
-- `unoq-1` idle: matrix shows the four corner pixels lit steadily plus a center-pixel heartbeat at 0.5 Hz; RGB LEDs off.
-- `pico-1` idle: visible LED blinks at 0.5 Hz (1 s on, 1 s off).
-- `jetson-1` status LED (`jetson.led`, GPIO on the rig, **driven only by trusted node code, never by agent code**): idle 0.5 Hz heartbeat; solid on while a bench is running; three quick flashes after a completed bench. The sandbox has no GPIO access.
-Idle programs for unoq and pico live in `node/idle/<type>/` and are deployed by the node on reset.
+## C10. Control API (`farm-control`, owner C; UI owner D consumes it)
 
-## C10. Physical layout (rig; documented in `observer/SETUP.md` and `rig/BRINGUP.md`)
-- Rig: the Jetson on Ethernet (not WiFi), fixed IP or DHCP reservation, in a ventilated enclosure with its own constant LED lighting (so sunlight and room lights never change calibration), matte dark interior, camera on a rigid mount with locked exposure, all visible outputs inside the frame.
-- USB: powered USB hub for Uno Q, Pico, camera; Uno Q connected by USB only, WiFi forgotten/disabled; Pico by USB.
-- Power: Jetson on its barrel supply (J48 jumper if applicable); a smart plug or switchable relay for the hub so the team can remotely power-cycle boards.
-- Watchdog: systemd services with `Restart=always`; hardware watchdog or a cron health check; the broker marks the rig offline when heartbeats stop.
+Operator port (tailnet only, `https://<control>.<tailnet>.ts.net` via `tailscale serve`; caller identity from the `Tailscale-User-Login` header, team only):
+- `GET /api/graph` → `{nodes, edges}` (FRONTEND.md §3)
+- `GET /api/events` → SSE: rig events (C4) merged and prefixed with `rig_id`, plus `session`, `session_message`
+- `GET /api/sessions` → `[{farm_id, devin_session_id, title, status, acus, node_name, online, leases: [...], url}]`
+- `GET /api/sessions/{farm_id}/messages` → `[{source, text, ts}]`
+- `POST /api/sessions` `{ticket_id, device_hint?, mode?: "normal", max_acu?: 5, extra_prompt?}` → `{farm_id, devin_session_id}`. Control mints the join key and calls Devin create-session with `session_secrets` (`TS_AUTHKEY`, `FARM_ID`), `playbook_id`, `max_acu_limit`, `tags`, and optionally `structured_output_schema` (C11).
+- `POST /api/sessions/{farm_id}/message` `{text}` → 200 (Devin send-message)
+- `POST /api/sessions/{farm_id}/stop` → archive the session, revoke its leases on every rig, and delete its tailnet node
+- `POST /api/rigs/{rig_id}/devices/{id}/poll` → `{state, snapshot_url}` (fresh health + snapshot)
+- `POST /api/rigs/{rig_id}/admin/...` → proxies C3 admin
+- `GET /api/budget` → `{acus_used, acus_cap, sessions_live}`
 
-## C11. Trust boundaries and the sandbox (`rig/`, owned by Direction 2; checked by Direction 1's tests and the verification agent)
-Trusted components: broker, `farm-node`, `farm-observer`, `jetson_bench`, idle programs, `rig/` scripts. Untrusted: every byte from a ticket repo and from a Devin session.
-- Agent code never runs on the rig host. Allowed destinations: Uno Q (Linux side and MCU), Pico, the sandbox container.
-- Sandbox container (`farm-sandbox`): non-root user, read-only root filesystem, a single writable tmpfs work dir, mount only the work dir (no `/dev/video*`, no `/dev/gpiochip*`, no USB, no Docker socket, no `/opt/farm`, no `/etc/farm`), `--network none`, `--pids-limit`, memory and CPU limits, `--cap-drop ALL`, `no-new-privileges`, GPU only through the NVIDIA runtime, wall-clock timeout enforced by the node. Documented honestly as hackathon-grade isolation (shared kernel), with the escape tests in `rig/tests/sandbox/` (try to read the camera, read `/etc/farm/env`, open the network, fork-bomb, fill the disk, write outside the work dir) all expected to fail.
-- Inputs and references for the benchmark live outside the container; the harness copies in only the agent's code and the inputs, and reads outputs from a pipe.
-- Uno Q: no network egress beyond the USB link; `requirements.txt` is checked against an allowlist of pre-installed wheels; deploys never run `pip install` from the internet.
-- Public surface: only the broker. The rig has no inbound port. The dashboard and camera stream are read-only; the public camera view is cropped to the device area and never shows the room.
+Public port (Funnel `:443`, read-only, no transcripts, no prompting): `GET /` (public map), `GET /pub/graph`, `GET /pub/events` (C4 rig events + session status without messages), `GET /e/<id>` (evidence page), `GET /e/<id>/<file>`.
 
-## C12. Rig operations (owned by Direction 2; everyone follows)
-- Paths: `/opt/farm/{node,observer,bench,sandbox}`, config in `/etc/farm/`, logs via `journalctl -u farm-node -u farm-observer`.
-- Services: `farm-node.service`, `farm-observer.service`, `farm-sandbox-image` (built by `rig/build_sandbox.sh`).
-- Remote access: Tailscale (or a reverse SSH tunnel) with each team member's key; no password ssh. Hostname `rig-1`.
-- Deploy: `rig/deploy.sh node|observer|bench|all [--ref <git ref>]` pulls the ref on the rig, restarts the service, runs a smoke test, and rolls back on failure. Never edit files on the rig by hand.
-- Maintenance windows: before a rehearsal or demo, set the broker to `maintenance` (C1 admin) and wait for leases to drain; no deploys during a demo.
-- Health: `GET /v1/rig` (C1) and the `rig` SSE event (C7).
+**Rig discovery:** control lists peers with `tag:rig` from `tailscale status --json` every 10 s and subscribes to each rig's `/v1/events`. A rig that drops out turns grey on the map; its devices show `offline`.
+
+**Session ↔ node mapping:** the hostname `devin-<farm_id>` links the Devin session to its tailnet node, and therefore to its leases.
+
+## C11. Session claim (structured output, used by experiments)
+
+```json
+{"type": "object", "required": ["claimed_success", "final_sha"],
+ "properties": {"claimed_success": {"type": "boolean"}, "confidence": {"type": "number"},
+                "final_sha": {"type": "string"}, "evidence_ids": {"type": "array", "items": {"type": "string"}},
+                "notes": {"type": "string"}}}
+```
