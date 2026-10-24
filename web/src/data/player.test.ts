@@ -108,6 +108,20 @@ describe("createPlayer", () => {
     stop();
   });
 
+  it("counts a loop pass once even if paused or re-sped during the end-of-pass gap", async () => {
+    const { h } = harness();
+    const stop = createPlayer("/x.ndjson", { loop: true })(h);
+    await flush();
+    vi.advanceTimersByTime(4000 + 1000); // inside the 3 s gap
+    playback.pause();
+    playback.resume();
+    playback.setSpeed(2);
+    expect(playback.getSnapshot().pass).toBe(0);
+    vi.advanceTimersByTime(1500);
+    expect(playback.getSnapshot().pass).toBe(1);
+    stop();
+  });
+
   it("pause holds events, resume continues; seek fast-forwards after a reset", async () => {
     const { h, log, got } = harness();
     const stop = createPlayer("/x.ndjson", {})(h);

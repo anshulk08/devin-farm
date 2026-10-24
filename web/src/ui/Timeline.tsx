@@ -23,7 +23,8 @@ function tickFor(ev: FarmEvent): Omit<Tick, "ts"> | null {
   switch (ev.name) {
     case "verify":
       if (ev.data.state === "pending") return { tone: "neutral", major: false };
-      if (ev.data.state === "error") return { tone: "fail", major: true };
+      // A verify error (camera down, uncalibrated…) is degraded, not contradicted by the camera: amber, never red.
+      if (ev.data.state === "error") return { tone: "warn", major: true };
       return { tone: verdictTone(ev.data.results ?? []), major: true };
     case "evidence":
       return null; // the verify tick already carries the verdict
@@ -67,14 +68,15 @@ export function Timeline() {
   const ticks = useMemo(() => {
     const out: Tick[] = [];
     for (const ev of log) {
-      if (ev.data.ts < start) continue;
+      // ts > end happens after a replay restart/seek: the log still holds the previous pass.
+      if (ev.data.ts < start || ev.data.ts > end) continue;
       const t = tickFor(ev);
       if (t) out.push({ ts: ev.data.ts, ...t });
     }
     // Majors last so verdicts draw on top of neutral ticks.
     return out.sort((a, b) => Number(a.major) - Number(b.major));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [logVersion, start]);
+  }, [logVersion, start, end]);
 
   const scrubbing = scrubTs != null;
   const value = scrubbing ? Math.min(Math.max(scrubTs, start), end) : end;
@@ -151,7 +153,7 @@ export function Timeline() {
             type="button"
             className="tl-btn tl-play"
             onClick={() => (ended ? playback.restart() : playback.toggle())}
-            aria-label={pb.playing ? "Pause playback" : ended ? "Play again from the start" : "Resume playback"}
+            aria-label={pb.playing ? "Pause playback" : ended ? "Play again from the start" : "Play"}
           >
             {pb.playing ? <PauseIcon /> : <PlayIcon />}
             <span>{pb.playing ? "Pause" : ended ? "Play again" : "Play"}</span>

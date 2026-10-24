@@ -167,9 +167,12 @@ export function createPlayer(url: string, opts: PlayerOptions = {}): FeedSource 
       if (stopped || !playing) return;
       if (idx >= events.length) {
         if (loop) {
-          pass++;
           // Small pause at the end so the final state reads before the loop restarts.
-          timer = setTimeout(() => startPass(0), 3000 / speed);
+          // (Count the pass only when it actually restarts: pause/speed changes re-enter here.)
+          timer = setTimeout(() => {
+            pass++;
+            startPass(0);
+          }, 3000 / speed);
         } else {
           playing = false;
           reanchor(duration);
