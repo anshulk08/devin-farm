@@ -97,7 +97,7 @@
   right: -26px;
   padding: 2px 7px;
   border-radius: 999px;
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   line-height: 16px;
   color: var(--text);
   background: var(--ground-2);
@@ -304,7 +304,7 @@
 }
 .dev__verdict--pass { color: var(--ok); }
 .dev__verdict--fail { color: var(--bad); }
-.dev__verdict--self { color: var(--warn); font-size: var(--fs-xs); font-weight: 600; }
+.dev__verdict--self { color: var(--warn); font-size: var(--fs-sm); font-weight: 600; }
 
 .dev__label {
   margin-top: 10px;
@@ -350,7 +350,7 @@
 .cam.is-scanning .cam__lens { border-color: var(--text); }
 .cam--down .cam__lens { border-color: var(--warn); }
 .cam--down .cam__glass { stroke: var(--warn); }
-.cam__label { margin-top: 4px; font-size: var(--fs-xs); color: var(--text-dim); }
+.cam__label { margin-top: 4px; font-size: var(--fs-sm); color: var(--text-dim); }
 .cam.is-selected .cam__lens { outline: 2px solid var(--text); outline-offset: 4px; }
 .cam__scan {
   position: absolute;

@@ -1,5 +1,5 @@
 // The bubble map (FRONTEND §2, §4, §7): React Flow over a pinned band layout.
-import { memo, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent as RMouseEvent, type ReactNode } from "react";
+import { memo, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent as RMouseEvent, type KeyboardEvent as RKeyboardEvent, type ReactNode } from "react";
 import { ReactFlow, ReactFlowProvider, useReactFlow, type Edge, type Node, type NodeTypes, type EdgeTypes } from "@xyflow/react";
 import { useFarm } from "../state/store";
 import { buildEdges, buildNodes, stabilize, type MapEdge, type MapNode } from "./build";
@@ -69,9 +69,18 @@ function MapInner({ selectedId, onSelect }: GraphCanvasProps) {
 
   // ---- edges ----
   // Leases present on first paint don't "draw in"; later ones do (that is the hand-over moment).
+  // A scrub (and the jump back to live when it ends) is a jump, not a hand-over: nothing draws in or retracts.
+  const scrubbing = scrubTs != null;
+  const lastScrub = useRef(scrubbing);
+  const scrubJump = scrubbing || lastScrub.current !== scrubbing;
+  useEffect(() => {
+    lastScrub.current = scrubbing;
+  }, [scrubbing]);
   const settled = useRef<Set<string> | null>(null);
   if (settled.current === null && Object.keys(state.edges).length > 0) {
     settled.current = new Set(Object.keys(state.edges));
+  } else if (settled.current && scrubJump) {
+    for (const id of Object.keys(state.edges)) settled.current.add(id);
   }
   const prevEdges = useRef(new Map<string, MapEdge>());
   const baseEdges = useMemo(
@@ -81,7 +90,6 @@ function MapInner({ selectedId, onSelect }: GraphCanvasProps) {
   );
 
   // Ghosts: removed lease lines retract upward, removed queue lines fade, then disappear.
-  const scrubbing = scrubTs != null;
   const [ghosts, setGhosts] = useState<MapEdge[]>([]);
   const ghostTimers = useRef(new Set<ReturnType<typeof setTimeout>>());
   useEffect(() => {
@@ -89,7 +97,7 @@ function MapInner({ selectedId, onSelect }: GraphCanvasProps) {
     const next = new Map(baseEdges.map((e) => [e.id, e]));
     prevEdges.current = next;
     // No ghosts for reduced motion or while browsing history (a scrub is a jump, not a hand-over).
-    if (reduced || scrubbing || prev.size === 0) return;
+    if (reduced || scrubJump || prev.size === 0) return;
     const gone: MapEdge[] = [];
     prev.forEach((e, id) => {
       if (next.has(id) || !nodeIds.has(e.source) || !nodeIds.has(e.target)) return;
@@ -176,11 +184,23 @@ function MapInner({ selectedId, onSelect }: GraphCanvasProps) {
     [onSelect],
   );
   const onPaneClick = useCallback(() => onSelect(null), [onSelect]);
+  // Keyboard: React Flow makes nodes focusable but only fires onNodeClick for the mouse. Enter/Space selects.
+  const onKeyDown = useCallback(
+    (e: RKeyboardEvent) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const el = (e.target as HTMLElement).closest?.(".react-flow__node");
+      const id = el?.getAttribute("data-id");
+      if (!id || id === "cloud") return;
+      e.preventDefault();
+      onSelect(id);
+    },
+    [onSelect],
+  );
 
   const empty = Object.keys(state.nodes).length === 0;
 
   return (
-    <div className="map" ref={wrapRef} onMouseLeave={clearHover}>
+    <div className="map" ref={wrapRef} onMouseLeave={clearHover} onKeyDown={onKeyDown}>
       <Clock now={state.now} paused={scrubTs != null}>
         <ReactFlow
           nodes={nodes as Node[]}

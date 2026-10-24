@@ -65,7 +65,11 @@ export function useFlash<T>(key: string | undefined, value: T, ms: number): T | 
   useEffect(() => {
     if (key === seen.current) return;
     seen.current = key;
-    if (!key) return;
+    if (!key) {
+      // Verdict cleared (e.g. scrubbed back before it): drop any flash still showing.
+      setFlash(null);
+      return;
+    }
     setFlash({ key, value });
     const t = setTimeout(() => setFlash(null), ms);
     return () => clearTimeout(t);
