@@ -1,13 +1,14 @@
-# Work split: four people, four lanes
+# Work split: four build lanes + one integrator
 
-Each lane owns its directories outright. Interfaces cross lanes only through `docs/CONTRACTS.md` (owner C). Each brief below is self-contained: paste it into that person's coding agent together with `docs/SCOPE.md` and `docs/CONTRACTS.md`.
+Each lane owns its directories outright. Interfaces cross lanes only through `docs/CONTRACTS.md` (owner C). Each brief below is self-contained: paste it into that person's coding agent together with `docs/SCOPE.md` and `docs/CONTRACTS.md`. Nobody pushes to `main` directly; the **PM/Integrator** reviews and merges every PR (see `docs/INTEGRATION.md`).
 
 | Lane | Person | Owns | Physically at the rig? |
 |---|---|---|---|
+| **PM: Integration, test, release** | PM (the machine wired to the Jetson) | `main` branch, `ci/`, `.github/`, `docs/INTEGRATION.md`, `docs/SCOPE.md`, release tags, on-rig deploys, final E2E acceptance; co-owns `web/` with D | Yes (USB + tailnet) |
 | **A: Rig & hardware** | A | `rig/` (rigd, drivers, idle programs, provisioning, systemd, USB hardening), `tickets/` | Yes |
 | **B: Verifier & camera** | B | `verifier/`, enclosure/lighting spec, ticket `assertions.json` review | Yes |
 | **C: Tailnet, control plane & Devin** | C | `tailnet/` (ACL policy, key minting), `control/` (backend), `session-kit/`, `experiments/`, `docs/CONTRACTS.md` | No |
-| **D: Frontend, story & submission** | D | `web/`, `docs/pitch/`, `docs/media/`, `README.md`, `docs/SUBMISSION.md` | No (needs the rig for filming) |
+| **D: Frontend, story & submission** | D (+PM on frontend) | `web/`, `docs/pitch/`, `docs/media/`, `README.md`, `docs/SUBMISSION.md` | No (needs the rig for filming) |
 
 **Shared touch points (contract only):**
 - A↔B: verifier local API (C5) and idle patterns (C8)
@@ -21,7 +22,7 @@ Each lane owns its directories outright. Interfaces cross lanes only through `do
 3. Secrets live only in env or `/etc/farm/env` (root 600): `TS_OAUTH_CLIENT_ID/SECRET`, `DEVIN_API_KEY`, `DEVIN_ORG_ID`, `GITHUB_TOKEN`. Never commit them.
 4. Agent code never runs on the Jetson host.
 5. Never present a mock or replay as live.
-6. Branch per lane (`lane-a-rig`, `lane-b-verifier`, `lane-c-control`, `lane-d-web`); small PRs to `main`; `main` stays runnable.
+6. Branch per lane (`lane-a-rig`, `lane-b-verifier`, `lane-c-control`, `lane-d-web`, `pm-*` for integrator fixes); PRs to `main` only; the PM merges after CI + review + on-rig smoke where hardware is touched; `main` stays runnable.
 7. Each lane keeps `STATUS.md` in its root dir: works / mocked / blocked / needs.
 
 ---
@@ -46,7 +47,7 @@ Each lane owns its directories outright. Interfaces cross lanes only through `do
    - **pico:** mpremote copy, soft reset, serial tail. Reset wipes the FS (incl. `boot.py`) and installs idle. LED bank wiring: GP25 + GP16–19 with resistors, documented.
    - **unoq:** copy app to `~/ArduinoApps/<lease>`, `arduino-app-cli app start`, `app logs`. Reset stops all apps, kills user processes, wipes non-idle apps, restores the default app, starts idle. Preflight linter (layout, `App.run(`, libraries allowlist, no internet pip).
 5. **Idle programs** (`rig/idle/`) per C8.
-6. **Mock mode:** `farm-rigd --mock-drivers --mock-verifier` simulates boards so C and D can develop with no hardware, and so we can run a second "rig-2" on any laptop to prove multi-rig.
+6. **Mock mode:** `farm-rigd --mock-drivers --mock-verifier` simulates boards so C and D can develop with no hardware, and so we can run a second "rig-2" on any laptop to prove multi-rig. CLI contract used by `ci/e2e_mock.sh`: `python -m rig.rigd --mock-drivers --mock-verifier --mock-identity --bind 127.0.0.1 --port 8080 --control-port 8081`. `--mock-identity` (refused unless bound to 127.0.0.1) replaces whois with the `X-Mock-Node: <node_name>` request header, so tests can act as several sessions.
 7. **Tests:** unit tests for leases/queue/fencing/hand-over/races (two acquirers, expiry mid-run, stale token after re-grant, holder offline, restart mid-lease), path validation, clone safety. Hardware scripts in `rig/tests/hw/`. Security checks in `rig/tests/security/`: a Pico `main.py` trying to enumerate as HID is blocked; a session node can't reach :8081, :22, or :8090.
 8. **Tickets** (`tickets/`, C9), each solvable in ~10–15 min, validated with `tickets/validate.py` (acquire → run reference → verify → release via the real API):
    - `pico/led-sequence`, plus a **trap** variant (external LEDs wired active-low / non-tutorial pins);
@@ -140,17 +141,32 @@ Each lane owns its directories outright. Interfaces cross lanes only through `do
 
 **Milestones:** T+2 storyboard + design direction + fixture stream; T+4 map in mock mode; T+8 against control on mock rigd; T+12 live + drawers + prompting; T+14 architecture SVG; T+16 freeze; T+18 rehearsal 1 + B-roll; T+21 rehearsal 2, video locked, Devpost submitted.
 
+## PM: Integration, test & release (`main`, `ci/`, `.github/`, `docs/INTEGRATION.md`, co-owns `web/`)
+
+**Goal:** `main` always works end to end on the real rig; every merge is reviewed, tested and reversible.
+
+**Do:**
+1. **Repo hygiene (T+0):** branch protection on `main` (PR required, CI required, no force-push); PR template; CODEOWNERS; lane branches created.
+2. **CI (T+0–T+2):** `.github/workflows/ci.yml` runs per-path lint + unit tests (`rig/`, `verifier/`, `control/` pytest; `web/` typecheck + build) and the **mock E2E** (`ci/e2e_mock.sh`: rigd `--mock-drivers --mock-verifier` + control with a mock Devin client + a scripted session doing lease → run → verify → release, and a 3-session queue/hand-over). Lanes add their own unit tests; PM owns the E2E.
+3. **Review & merge** per `docs/INTEGRATION.md`: contract conformance, no cross-lane edits, secrets scan, tests meaningful, STATUS.md updated. Merge order follows dependencies (contracts → rigd/verifier → control → web).
+4. **On-rig testing:** deploy candidate refs to the Jetson with `rig/deploy.sh --ref <sha>` (or `ci/rig_smoke.sh` until A ships it), run `ci/rig_smoke.sh` (health, idle confirmed on every device, Pico + Uno Q reference tickets verified, queue/hand-over with two fake sessions), record results in `ci/results/<date>-<sha>.md`. Tag passing builds `rc-N`.
+5. **Acceptance tracking:** keep the Must list from `docs/SCOPE.md` §5 as a checklist with evidence links; run the Day-0 G-checks that need the rig (G5–G7) with A/B.
+6. **Frontend (with D):** PM takes integration of `web/` against live control (wiring SSE, drawers, prompt box, poll), D keeps design/visuals and the submission.
+7. **Release & demo:** freeze at T+16 (only `fix:` PRs after); cut `v1.0` from the last green `rc`; the demo runs from that tag; own the demo-day checklist and the go/no-go call with D.
+
+**Acceptance:** every merged PR has a green CI run; every `rc` tag has an on-rig smoke record; `main` at T+21 passes `ci/rig_smoke.sh` on the real rig twice in a row.
+
 ---
 
 ## Integration calendar
 
 | When | Who | What |
 |---|---|---|
-| T+0 | all | Tailnet created, everyone invited, rig-1 online with `tag:rig`; repo cloned; lanes start Day-0 checks |
-| T+1.5 | C (+A) | Day-0 verdicts; contracts v1.0 frozen; fallback decision if G1 failed |
-| T+4 | all | Standalone demo of every component on mocks; D shows the map on fixtures |
-| T+8 | A+B+C | First real session end to end on `pico-1` |
-| T+12 | all | Multi-session + queue + hand-over live on the map; prompting from the UI |
-| T+16 | all | Feature freeze; E1 launched |
-| T+18 | all | Rehearsal 1; filming |
-| T+21 | all | Rehearsal 2; backup replay; submit |
+| T+0 | all | Tailnet created, everyone invited, rig-1 online with `tag:rig`; repo cloned; lanes start Day-0 checks; PM sets branch protection + CI skeleton |
+| T+1.5 | C (+A, PM) | Day-0 verdicts; contracts v1.0 frozen; fallback decision if G1 failed |
+| T+4 | all | Standalone demo of every component on mocks; D shows the map on fixtures; PM's mock E2E green in CI |
+| T+8 | A+B+C, PM | First real session end to end on `pico-1`; PM tags `rc-1` after on-rig smoke |
+| T+12 | all | Multi-session + queue + hand-over live on the map; prompting from the UI; `rc-2` |
+| T+16 | all | Feature freeze (PM rejects non-`fix:` PRs); E1 launched |
+| T+18 | all | Rehearsal 1 from the latest `rc`; filming |
+| T+21 | all | Rehearsal 2; PM tags `v1.0`; backup replay; submit |

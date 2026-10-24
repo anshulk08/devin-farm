@@ -1,0 +1,16 @@
+# Every PR needs the PM (integrator); lane owners review their paths.
+# Replace @PM / @LANE_* with GitHub usernames.
+*                  @rlakki08
+/rig/              @LANE_A @rlakki08
+/tickets/          @LANE_A @rlakki08
+/verifier/         @LANE_B @rlakki08
+/tailnet/          @LANE_C @rlakki08
+/control/          @LANE_C @rlakki08
+/session-kit/      @LANE_C @rlakki08
+/experiments/      @LANE_C @rlakki08
+/docs/CONTRACTS.md @LANE_C @rlakki08
+/web/              @LANE_D @rlakki08
+/docs/pitch/       @LANE_D @rlakki08
+/docs/media/       @LANE_D @rlakki08
+/ci/               @rlakki08
+/.github/          @rlakki08
