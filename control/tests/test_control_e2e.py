@@ -145,7 +145,8 @@ async def test_operator_api_requires_a_team_login(farm):
 
 
 async def test_admin_proxy_only_forwards_c3_admin_endpoints(farm):
-    assert (await farm.op.post("/api/rigs/rig-1/admin/../v1/leases", json={})).status_code == 404
+    # httpx normalises `..`; with web/dist built the static mount answers the leftover path with 405
+    assert (await farm.op.post("/api/rigs/rig-1/admin/../v1/leases", json={})).status_code in (404, 405)
     assert (await farm.op.post("/api/rigs/rig-1/admin/shell", json={})).status_code == 404
     r = await farm.op.post("/api/rigs/rig-1/admin/maintenance", json={"on": True})
     assert r.status_code == 200 and farm.stack.rigs[0].maintenance is True

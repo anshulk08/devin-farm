@@ -66,14 +66,14 @@ def build_graph(rigs: list[RigView], sessions: list[SessionView], *, public: boo
         nodes.append({"id": cam_id, "kind": "camera", "parent": rid, "label": "camera",
                       "status": "offline" if not rig.online else ("ok" if cam_ok else "down"), "data": camera})
 
-        for dev in state.get("devices") or []:
+        for order, dev in enumerate(state.get("devices") or []):
             dev_name = dev.get("id", "")
             did = f"device:{rig.rig_id}/{dev_name}"
             status = dev.get("status", "offline") if rig.online else "offline"
             lease = dev.get("lease") if rig.online else None
             queue = (dev.get("queue") or []) if rig.online else []
             data: dict[str, Any] = {
-                "type": dev.get("type"), "outputs": dev.get("outputs", []), "holder": dev.get("holder"),
+                "type": dev.get("type"), "order": order, "outputs": dev.get("outputs", []), "holder": dev.get("holder"),
                 "queue_depth": len(queue), "last_verdict": dev.get("last_verdict"),
                 "snapshot_path": f"rigs/{rig.rig_id}/devices/{dev_name}/snapshot.jpg",
             }

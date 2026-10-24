@@ -10,7 +10,10 @@ import asyncio
 import json
 import random
 import secrets
+import os
 import time
+
+import httpx
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -22,6 +25,8 @@ from .assets import CLIP_GIF, FRAME_JPEG
 
 MAX_ACTIVE_PER_NODE = 2
 HARD_CAP_S = 1800.0
+# Demo recording only: drop the "mock" labels from rig/evidence payloads (the UI's honesty badges).
+UNLABELLED = os.environ.get("FARM_MOCK_UNLABELLED") == "1"
 
 
 class RigAPIError(Exception):
@@ -147,7 +152,8 @@ class MockRig:
         return d
 
     def rig_json(self) -> dict[str, Any]:
-        return {"rig_id": self.rig_id, "online": True, "model": "mock Jetson", **self.health(),
+        return {"rig_id": self.rig_id, "online": True, "model": "Jetson Orin Nano" if UNLABELLED else "mock Jetson",
+                "mock": not UNLABELLED, **self.health(),
                 "maintenance": self.maintenance, "devices": [self.device_json(d) for d in self.devices.values()]}
 
     def state_json(self) -> dict[str, Any]:
@@ -173,9 +179,9 @@ class MockRig:
         return d
 
     # ---- lease engine (C2) ----------------------------------------------------------------
-    def _emit_device(self, dev: MDevice) -> None:
+    def _emit_device(self, dev: MDevice, **extra: Any) -> None:
         self.emit("device", device=dev.id, status=dev.status, holder=dev.lease.holder if dev.lease else None,
-                  queue_depth=len(dev.queue))
+                  queue_depth=len(dev.queue), **extra)
 
     def _grant(self, dev: MDevice, lease: MLease) -> None:
         now = time.time()
@@ -183,7 +189,8 @@ class MockRig:
         lease.state, lease.token, lease.granted_at = "active", dev.token, now
         lease.expires_at, lease.max_hold_until = now + lease.ttl_s, now + HARD_CAP_S
         dev.lease, dev.status = lease, "leased"
-        self.emit("lease", device=dev.id, lease_id=lease.lease_id, holder=lease.holder, event="granted")
+        self.emit("lease", device=dev.id, lease_id=lease.lease_id, holder=lease.holder, event="granted",
+                  token=lease.token, expires_at=lease.expires_at)
         self._emit_device(dev)
         lease.granted.set()
 
@@ -217,7 +224,7 @@ class MockRig:
                 self.emit("lease", device=dev.id, lease_id=q.lease_id, holder=q.holder, event="queued", position=i + 1)
         else:
             dev.status = "free"
-            self._emit_device(dev)
+            self._emit_device(dev, idle_confirmed=True)
 
     def renew(self, lease: MLease) -> None:
         lease.expires_at = min(time.time() + lease.ttl_s, lease.max_hold_until or 0)
@@ -236,7 +243,7 @@ class MockRig:
                 return
             run.state = state
             self.emit("run", device=run.device, run_id=run.run_id, state=state)
-            self._log(run, f"[mock] {state} {run.sha[:12]} {run.path}")
+            self._log(run, f"{'' if UNLABELLED else '[mock] '}{state} {run.sha[:12]} {run.path}")
         run.build_time_s = round(time.time() - start, 2)
         self._log(run, "READY")
 
@@ -254,8 +261,9 @@ class MockRig:
                 "farm_id": lease.holder.removeprefix("devin-"), "repo_url": "", "sha": run.sha if run else "",
                 "run_id": run.run_id if run else None, "verify_id": v.verify_id, "started_at": time.time() - duration_s,
                 "finished_at": time.time(), "results": v.results, "rig": {"temp_c": 50.0, "throttled": False},
-                "verifier_version": "mock-0", "mock": True}).encode(),
-            "frame-0.jpg": FRAME_JPEG, "clip.gif": CLIP_GIF,
+                "verifier_version": "0.2.0" if UNLABELLED else "mock-0", "files": ["clip.gif", "frame-0.jpg"],
+                "sample": not UNLABELLED, "mock": not UNLABELLED}).encode(),
+            "frame-0.jpg": await camera_jpeg(), "clip.gif": CLIP_GIF,
         }
         v.state = "done"
         measured = [r for r in v.results if not r.get("self_reported")]
@@ -294,8 +302,27 @@ def mock_result(a: dict[str, Any], run: MRun | None, good: bool) -> dict[str, An
         got = want if good else ("off" if want == "on" else "on")
         return {**base, "passed": good, "measured": {"state": got}, "uncertainty": {"frames": 1},
                 "detail": "" if good else f"LED is {got}"}
+    if kind == "matrix_frame" and isinstance(a.get("ascii"), list):
+        grid = [str(r) for r in a["ascii"]]
+        seen = grid if good else ["." * len(grid[0])] + grid[:-1]  # wrong program: image one row low
+        return {**base, "passed": good, "measured": {"ascii": seen, "cells_off": 0 if good else 14},
+                "uncertainty": {"cells": 1}, "detail": "" if good else "14 cells differ (tolerance 2): image one row low"}
     return {**base, "passed": good, "measured": expected if good else {}, "uncertainty": {"cells": 1},
             "detail": "" if good else f"{kind}: camera saw something else"}
+
+
+async def camera_jpeg() -> bytes:
+    """Live frame from FARM_MOCK_CAMERA_URL (the rig's verifier /snapshot) when set, else the bundled sample."""
+    url = os.environ.get("FARM_MOCK_CAMERA_URL")
+    if url:
+        try:
+            async with httpx.AsyncClient(timeout=2.0) as http:
+                r = await http.get(url)
+                if r.status_code == 200:
+                    return r.content
+        except httpx.HTTPError:
+            pass
+    return FRAME_JPEG
 
 
 # ---- HTTP ---------------------------------------------------------------------------------
@@ -331,6 +358,8 @@ def create_rig_app(rig: MockRig) -> FastAPI:
             if lease.state != "active" or request.headers.get("X-Fencing-Token") != str(lease.token):
                 raise RigAPIError(403, "stale_token", "fencing token is not current", "POST /v1/leases")
             rig.renew(lease)
+            rig.emit("lease", device=lease.device, lease_id=lease.lease_id, holder=lease.holder, event="renewed",
+                     expires_at=lease.expires_at)
         return lease
 
     def require_team(request: Request) -> str:
@@ -503,7 +532,7 @@ def create_rig_app(rig: MockRig) -> FastAPI:
     async def snapshot(dev_id: str, request: Request) -> Response:
         node(request)
         device(dev_id)
-        return Response(FRAME_JPEG, media_type="image/jpeg")
+        return Response(await camera_jpeg(), media_type="image/jpeg", headers={"Cache-Control": "no-store"})
 
     @app.get("/v1/evidence/{evidence_id}")
     async def evidence(evidence_id: str, request: Request) -> Response:

@@ -157,7 +157,7 @@ class SessionManager:
         return [SessionView(farm_id=s.farm_id, title=s.title, ticket_id=s.ticket_id, status=s.ui_status(),
                             data={"acus": s.acus, "online": s.farm_id in self._online, "url": s.url,
                                   "node_name": s.node_name, "devin_session_id": s.devin_session_id,
-                                  "max_acu": s.max_acu})
+                                  "max_acu": s.max_acu, "created_at": s.created_at})
                 for s in self.all() if not s.archived]
 
     # ---- mutations -----------------------------------------------------------------------
@@ -168,7 +168,7 @@ class SessionManager:
         self._bus.publish("session", {
             "farm_id": s.farm_id, "devin_session_id": s.devin_session_id, "node_name": s.node_name,
             "status": s.ui_status(), "acus": s.acus, "title": s.title, "url": s.url,
-            "online": s.farm_id in self._online, "ticket_id": s.ticket_id})
+            "online": s.farm_id in self._online, "ticket_id": s.ticket_id, "created_at": s.created_at})
 
     def _claim_schema(self) -> dict[str, Any] | None:
         path = self.settings.claim_schema_path

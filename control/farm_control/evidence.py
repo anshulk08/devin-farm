@@ -120,19 +120,39 @@ def _fmt(value: Any) -> str:
     return str(value)
 
 
-def render_page(evidence_id: str, doc: dict[str, Any], files: list[str], public_url: str) -> str:
-    e = html.escape
+def _og(evidence_id: str, doc: dict[str, Any], files: list[str], public_url: str) -> dict[str, str]:
     results = doc.get("results") or []
     v = verdict(results)
     label = {"confirmed": "✓ confirmed by camera", "contradicted": "✗ contradicted by camera",
              "self_reported": "self-reported only (not camera-confirmed)"}[v]
-    device = str(doc.get("device", ""))
     first = results[0] if results else {}
-    title = f"{device}: {first.get('type', 'verify')} {'✓' if v == 'confirmed' else '✗' if v == 'contradicted' else '·'}"
+    title = f"{doc.get('device', '')}: {first.get('type', 'verify')} {'✓' if v == 'confirmed' else '✗' if v == 'contradicted' else '·'}"
     desc = f"{label}. rig {doc.get('rig_id', '')}, sha {str(doc.get('sha', ''))[:12]}, {len(results)} assertion(s)."
     base = f"{public_url}/e/{evidence_id}" if public_url else f"/e/{evidence_id}"
     frames = [f for f in files if f.startswith("frame-")]
-    og_image = f"{base}/{frames[0]}" if frames else (f"{base}/clip.gif" if "clip.gif" in files else "")
+    image = f"{base}/{frames[0]}" if frames else (f"{base}/clip.gif" if "clip.gif" in files else "")
+    return {"title": title, "desc": desc, "base": base, "image": image, "label": label, "verdict": v}
+
+
+def render_web_page(template: str, evidence_id: str, doc: dict[str, Any], files: list[str], public_url: str) -> str:
+    """web/dist/evidence.html (Lane D) with its {{OG_*}} placeholders filled in (web/src/evidence/README.md)."""
+    og = _og(evidence_id, doc, files, public_url)
+    device = str(doc.get("device", ""))
+    subs = {"OG_TITLE": og["title"], "OG_DESCRIPTION": og["desc"], "OG_URL": og["base"], "OG_IMAGE": og["image"],
+            "OG_IMAGE_ALT": f"Frame recorded by the Farm camera: {device}"}
+    for k, val in subs.items():
+        template = template.replace("{{" + k + "}}", html.escape(val, quote=True))
+    return template
+
+
+def render_page(evidence_id: str, doc: dict[str, Any], files: list[str], public_url: str) -> str:
+    """Standalone fallback page, used when no web build is present."""
+    e = html.escape
+    results = doc.get("results") or []
+    o = _og(evidence_id, doc, files, public_url)
+    v, label, title, desc, base, og_image = o["verdict"], o["label"], o["title"], o["desc"], o["base"], o["image"]
+    device = str(doc.get("device", ""))
+    frames = [f for f in files if f.startswith("frame-")]
 
     rows = []
     for r in results:

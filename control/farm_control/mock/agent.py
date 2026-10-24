@@ -17,8 +17,9 @@ from .cloud import MockWorld, MSession
 ASSERTIONS = {
     "pico": [{"type": "led_blink", "target": "pico.led", "hz": 2.0, "duty": 0.3, "tol_pct": 10},
              {"type": "log_contains", "pattern": "READY"}],
-    "unoq": [{"type": "matrix_text", "target": "unoq.matrix", "text": "DEVIN", "scroll_cols_per_s": 10,
-              "tol_pct": 25}],
+    "unoq": [{"type": "matrix_frame", "target": "unoq.matrix", "tol_cells": 2, "hold_s": 2,
+              "ascii": [".............", "..##.....##..", ".####...####.", ".###########.",
+                        "..#########..", "...#######...", ".....###.....", "......#......"]}],
 }
 
 

@@ -32,7 +32,7 @@ async def _serve(args: argparse.Namespace) -> int:
     stack = None
     if args.mock:
         from .mock import mock_settings, start_mock_stack
-        stack = await start_mock_stack()
+        stack = await start_mock_stack(speed=float(os.environ.get("FARM_MOCK_SPEED", "1")))
         settings = mock_settings(settings, stack)
         peers: Any = stack.peers
     else:

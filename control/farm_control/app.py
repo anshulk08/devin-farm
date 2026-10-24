@@ -23,7 +23,7 @@ from .config import Settings
 from .devin import DevinClient
 from .errors import ControlError
 from .events import Event, EventBus, Recorder, encode_sse
-from .evidence import CONTENT_TYPES, EvidenceStore, render_page
+from .evidence import CONTENT_TYPES, EvidenceStore, render_page, render_web_page
 from .graph import RigView, build_graph
 from .rigs import RigConn, RigRegistry
 from .sessions import SessionManager
@@ -151,7 +151,7 @@ def _sse_response(gen: AsyncIterator[str]) -> StreamingResponse:
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
-def _install_common(app: FastAPI, ctl: Control) -> None:
+def _install_common(app: FastAPI, ctl: Control, web_dist: Path) -> None:
     @app.exception_handler(ControlError)
     async def _control_error(_: Request, exc: ControlError) -> JSONResponse:
         return JSONResponse({"error": {"code": exc.code, "message": exc.message}}, status_code=exc.status)
@@ -161,7 +161,11 @@ def _install_common(app: FastAPI, ctl: Control) -> None:
         doc = await ctl.evidence.get(evidence_id)
         if doc is None:
             raise ControlError(404, "unknown", "no such evidence")
-        return HTMLResponse(render_page(evidence_id, doc, ctl.evidence.files(evidence_id), ctl.settings.public_url))
+        files, public_url = ctl.evidence.files(evidence_id), ctl.settings.public_url
+        template = web_dist / "evidence.html"
+        if template.is_file():
+            return HTMLResponse(render_web_page(template.read_text(encoding="utf-8"), evidence_id, doc, files, public_url))
+        return HTMLResponse(render_page(evidence_id, doc, files, public_url))
 
     @app.get("/e/{evidence_id}/{name}")
     async def evidence_file(evidence_id: str, name: str) -> FileResponse:
@@ -214,7 +218,7 @@ def create_operator_app(ctl: Control) -> FastAPI:
             raise ControlError(403, "not_operator", f"{login} is not in FARM_TEAM_LOGINS")
         return login
 
-    _install_common(app, ctl)
+    _install_common(app, ctl, settings.web_dist)
     auth = [Depends(operator)]
 
     @app.get("/api/graph", dependencies=auth)
@@ -306,7 +310,7 @@ async def _snapshot(ctl: Control, rig_id: str, device: str) -> Response:
 
 def create_public_app(ctl: Control) -> FastAPI:
     app = FastAPI(title="farm-control public", docs_url=None, redoc_url=None, openapi_url=None)
-    _install_common(app, ctl)
+    _install_common(app, ctl, ctl.settings.web_public_dist)
 
     @app.get("/pub/graph")
     async def graph() -> dict[str, Any]:
