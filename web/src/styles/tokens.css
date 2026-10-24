@@ -2,16 +2,16 @@
    green = camera-confirmed, red = camera-contradicted, amber = self-reported/degraded/waiting, grey = offline.
    Session hues are a separate palette with no blue (Uno Q matrix), green or red. */
 :root {
-  --ground: #0b0f14;
-  --ground-2: #0f141b;
-  --panel: #121821;
-  --panel-2: #18202b;
-  --line: #243040;
-  --line-strong: #34445a;
-  --dot: #1a2330;
-  --text: #d6dee8;
-  --text-dim: #8b97a7;
-  --text-faint: #5d6a7a;
+  --ground: #0e0f11;
+  --ground-2: #111215;
+  --panel: #141518;
+  --panel-2: #1a1c20;
+  --line: #24262b;
+  --line-strong: #33363d;
+  --dot: #1b1d21;
+  --text: #e8e9eb;
+  --text-dim: #8d9199;
+  --text-faint: #5f636b;
 
   --ok: #3dd68c;      /* confirmed by camera */
   --bad: #f2555a;     /* contradicted by camera */
@@ -39,6 +39,12 @@
   --r-sm: 6px;
   --r-md: 10px;
   --r-lg: 18px;
+
+  /* Status pills (dashboard): tinted fill + readable text */
+  --pill-run-bg: #1b3326;  --pill-run-fg: #6fd39a;
+  --pill-wait-bg: #3a2d1b; --pill-wait-fg: #e6aa5c;
+  --pill-idle-bg: #23252a; --pill-idle-fg: #a3a7ae;
+  --pill-bad-bg: #3a1d20;  --pill-bad-fg: #f08a8e;
 
   --drawer-w: 420px;
   --topbar-h: 60px;

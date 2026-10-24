@@ -1,5 +1,6 @@
 // Single store: useReducer fed by the active source. Keeps the raw event log for the timeline scrubber.
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
+import { sessionsOrdered, syncSessionSlots } from "./selectors";
 import { foldEvents, initialState, reducer, type Action, type FarmState } from "./reducer";
 import type { FarmEvent } from "./types";
 import { modeFromLocation, sourceFor, type ModeInfo } from "../data/source";
@@ -62,6 +63,8 @@ export function FarmProvider({ children, mode: modeOverride }: { children: React
   }, [scrubTs, logVersion]);
 
   const setScrub = useCallback((ts: number | null) => setScrubTs(ts), []);
+
+  syncSessionSlots(sessionsOrdered(live));
 
   const value: Store = {
     state: scrubbed ?? live,
