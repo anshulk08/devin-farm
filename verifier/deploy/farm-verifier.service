@@ -1,0 +1,21 @@
+[Unit]
+Description=Farm verifier (C5): camera owner, /observe, /confirm_idle, /snapshot on 127.0.0.1:8090
+After=network.target farm-rigd.service
+
+[Service]
+Type=simple
+User=guru
+WorkingDirectory=/opt/farm/verifier
+Environment=PYTHONUNBUFFERED=1
+Environment=FARM_VERIFIER_STATE=/var/lib/farm/verifier
+Environment=FARM_VERIFIER_EVIDENCE=/var/lib/farm/verifier-evidence
+EnvironmentFile=-/etc/farm/verifier.env
+ExecStart=/opt/farm/verifier-venv/bin/farm-verifier --camera ${FARM_VERIFIER_CAMERA} serve --host 127.0.0.1 --port 8090
+Restart=always
+RestartSec=2
+MemoryMax=1G
+CPUQuota=200%
+SupplementaryGroups=video
+
+[Install]
+WantedBy=multi-user.target

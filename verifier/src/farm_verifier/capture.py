@@ -43,13 +43,18 @@ class Camera:
         self.exposure = exposure
         self.last_bgr: np.ndarray | None = None
 
-    def read(self) -> tuple[float, np.ndarray]:
-        """(monotonic seconds, per-pixel max over B/G/R as uint8)."""
+    def read_bgr(self) -> tuple[float, np.ndarray]:
+        """(monotonic seconds, BGR frame)."""
         ok, frame = self.cap.read()
         t = time.monotonic()
         if not ok:
             raise RuntimeError(f"frame grab failed on {self.device} (unplugged?)")
         self.last_bgr = frame
+        return t, frame
+
+    def read(self) -> tuple[float, np.ndarray]:
+        """(monotonic seconds, per-pixel max over B/G/R as uint8)."""
+        t, frame = self.read_bgr()
         return t, frame.max(axis=2)
 
     def frames(self, duration_s: float) -> list[tuple[float, np.ndarray]]:

@@ -45,6 +45,13 @@ def show(grid: np.ndarray, serial: str | None = None, make_default: bool = True)
     # Stop before touching files: the CLI tracks the running container via the App's .cache/,
     # so the App must stop while that state exists, and .cache/ must survive the update.
     # (`start`/`restart` refuse while running; `stop` on a stopped App is harmless.)
+    # Only one App runs at a time (`start` fails with 'App "X" Is Running'), so stop whatever is running, then ours.
+    listing = subprocess.run(adb + ["shell", "arduino-app-cli app list"], capture_output=True, text=True, timeout=60).stdout
+    for line in listing.splitlines():
+        parts = line.split()
+        if parts and parts[0].startswith("user:") and "running" in parts:
+            subprocess.run(adb + ["shell", f"arduino-app-cli app stop /home/arduino/ArduinoApps/{parts[0][5:]}"],
+                           capture_output=True, timeout=120)
     subprocess.run(adb + ["shell", f"arduino-app-cli app stop {REMOTE_APP}"], capture_output=True, timeout=120)
     with tempfile.TemporaryDirectory() as tmp:
         app = Path(tmp) / APP_NAME

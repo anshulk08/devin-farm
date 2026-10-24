@@ -30,9 +30,9 @@ def annotate(bgr: np.ndarray, cal: Calibration, result: dict, scale: int = 4) ->
     return np.vstack([banner, crop])
 
 
-def write(evidence_dir: str | Path, bgr: np.ndarray, cal: Calibration, result: dict) -> Path:
+def write(evidence_dir: str | Path, bgr: np.ndarray, cal: Calibration, result: dict, name: str = "frame-matrix.jpg") -> Path:
     out = Path(evidence_dir)
     out.mkdir(parents=True, exist_ok=True)
-    path = out / "frame-matrix.jpg"
+    path = out / name
     cv2.imwrite(str(path), annotate(bgr, cal, result))
     return path

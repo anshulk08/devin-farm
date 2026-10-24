@@ -1,3 +1,4 @@
 # CI entry point (.github/workflows/ci.yml installs this, then runs pytest). Local dev: `uv sync`.
--e .
+-e .[service]
 pytest
+httpx

@@ -4,6 +4,7 @@
     farm-verifier calibrate                           # shows the calibration image, fits the grid, re-shows the default image
     farm-verifier observe --expect images/devin-hexes.txt
     farm-verifier observe --assertions a.json         # C6 list or single object
+    farm-verifier serve                               # C5 HTTP service on 127.0.0.1:8090 (needs the `service` extra)
 """
 
 from __future__ import annotations
@@ -80,6 +81,13 @@ def cmd_observe(args) -> int:
     return 0 if all(r["passed"] for r in results) else 1
 
 
+def cmd_serve(args) -> int:
+    from .service import serve
+
+    serve(args.host, args.port, args.camera, args.exposure, args.serial)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="farm-verifier", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--camera", help="V4L2 device (default: first Logitech/BRIO node)")
@@ -108,6 +116,11 @@ def main(argv: list[str] | None = None) -> int:
     o.add_argument("--hold-s", type=float, default=2.0)
     o.add_argument("--evidence-dir", type=Path, help="write an annotated key frame here")
     o.set_defaults(fn=cmd_observe)
+
+    v = sub.add_parser("serve", help="run the C5 HTTP service (camera owner, /observe, /snapshot, ...)")
+    v.add_argument("--host", default="127.0.0.1")
+    v.add_argument("--port", type=int, default=8090)
+    v.set_defaults(fn=cmd_serve)
 
     args = p.parse_args(argv)
     try:
