@@ -1,0 +1,3 @@
+name: Farm Matrix Image
+icon: 🟦
+description: Shows one fixed 8x13 image on the built-in LED matrix from boot. The image is compiled in (sketch/frame.h); regenerate it with `farm-verifier show`.

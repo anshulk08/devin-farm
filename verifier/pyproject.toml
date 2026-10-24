@@ -1,0 +1,25 @@
+[project]
+name = "farm-verifier"
+version = "0.1.0"
+description = "Farm camera verifier: checks what the Uno Q LED matrix physically shows"
+readme = "README.md"
+authors = [
+    { name = "Subham Dash", email = "subhamdash14@gmail.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=2.2.6",
+    "opencv-python-headless>=5.0.0.93",
+]
+
+[project.scripts]
+farm-verifier = "farm_verifier.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.11,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
