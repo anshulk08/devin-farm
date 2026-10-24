@@ -1,0 +1,684 @@
+#!/usr/bin/env bash
+# farm: Devin Farm session CLI. Thin curl + jq wrapper over the rig session API
+# (docs/CONTRACTS.md C1). Works with bash 3.2 (macOS) and bash 5 (Linux).
+# Run `farm help` for usage.
+set -euo pipefail
+
+FARM_HOME="${FARM_HOME:-$HOME/.farm}"
+LEASE_DIR="$FARM_HOME/leases"
+MAP_DIR="$FARM_HOME/ids"      # run_id / verify_id -> lease_id
+VERIFY_DIR="$FARM_HOME/verify" # last results per verify_id
+PATH="$FARM_HOME/bin:$PATH"   # farm-join.sh may drop jq/tailscale here
+export PATH
+
+# Exit codes (documented in `farm help`).
+E_FAIL=1 E_USAGE=2 E_NET=3 E_LOCAL=4 E_403=5 E_404=6 E_409=7 E_429=8 E_422=9 E_HTTP=10 E_TIMEOUT=11 E_DEPS=12
+
+die() { local rc=$1; shift; echo "farm: $*" >&2; exit "$rc"; }
+note() { echo "$*" >&2; }
+
+# ~/.farm/env holds KEY=VALUE defaults; variables already set in the environment win.
+load_env() {
+  local f="$FARM_HOME/env" line key val
+  [ -f "$f" ] || return 0
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in '' | \#*) continue ;; esac
+    key=${line%%=*}
+    val=${line#*=}
+    case "$key" in '' | *[!A-Za-z0-9_]*) continue ;; esac
+    case "$val" in
+      \'*\') val=${val#\'} && val=${val%\'} ;;
+      \"*\") val=${val#\"} && val=${val%\"} ;;
+    esac
+    if [ -z "${!key+x}" ]; then export "$key=$val"; fi
+  done <"$f"
+}
+load_env
+
+for dep in curl jq; do
+  command -v "$dep" >/dev/null 2>&1 || die $E_DEPS "missing dependency: $dep (run session-kit/farm-join.sh, or install $dep)"
+done
+
+TMPD=$(mktemp -d "${TMPDIR:-/tmp}/farm.XXXXXX")
+trap 'rm -rf "$TMPD"' EXIT
+BODY="$TMPD/body"
+HTTP_CODE=000
+
+default_rig_url() {
+  local u="${FARM_RIG_URL:-http://${FARM_RIG:-rig-1}:8080}"
+  echo "${u%/}"
+}
+
+# api METHOD URL [json-body] [fencing-token] [max-time-s]
+# Sets HTTP_CODE; response body in $BODY. Exits E_NET if the rig can't be reached.
+api() {
+  local method=$1 url=$2 data=${3:-} token=${4:-} mt=${5:-30} rc=0
+  local args=(-sS -X "$method" -o "$BODY" -w '%{http_code}' -m "$mt" -H 'Accept: application/json')
+  if [ -n "${FARM_PROXY:-}" ]; then args+=(-x "$FARM_PROXY"); fi
+  if [ -n "${FARM_MOCK_NODE:-}" ]; then args+=(-H "X-Mock-Node: $FARM_MOCK_NODE"); fi
+  if [ -n "$token" ]; then args+=(-H "X-Fencing-Token: $token"); fi
+  if [ -n "$data" ]; then
+    printf '%s' "$data" >"$TMPD/req"
+    args+=(-H 'Content-Type: application/json' --data-binary "@$TMPD/req")
+  fi
+  : >"$BODY"
+  HTTP_CODE=$(curl "${args[@]}" "$url" 2>"$TMPD/curl_err") || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    note "farm: cannot reach $url (curl exit $rc: $(tr '\n' ' ' <"$TMPD/curl_err"))"
+    if [ "$rc" -eq 28 ]; then note "  the request timed out; the rig may be overloaded or offline."; fi
+    note "  check the tailnet: tailscale status   (re-join: bash session-kit/farm-join.sh)"
+    note "  rig URL: $(default_rig_url)  proxy: ${FARM_PROXY:-none}"
+    exit $E_NET
+  fi
+}
+
+http_ok() { case "$HTTP_CODE" in 2??) return 0 ;; *) return 1 ;; esac; }
+
+# Field of the C1 error body, or empty.
+err_field() { jq -r --arg k "$1" '(.error[$k] // empty) | tostring' "$BODY" 2>/dev/null || true; }
+
+# Print the C1 error ({error:{code,message,next}}) and exit with a code mapped from the HTTP status.
+# Lease-scoped failures that mean "this lease is gone" also drop the local lease file.
+fail_http() {
+  local lease_id=${1:-} code msg next
+  code=$(err_field code)
+  msg=$(err_field message)
+  next=$(err_field next)
+  if [ -n "$code" ]; then
+    echo "error: $code: ${msg:-HTTP $HTTP_CODE}" >&2
+  else
+    echo "error: HTTP $HTTP_CODE: $(head -c 400 "$BODY" | tr '\n' ' ')" >&2
+  fi
+  if [ -n "$next" ]; then echo "next: $next" >&2; fi
+  case "$code" in
+    stale_token | not_holder)
+      if [ -n "$lease_id" ] && [ -f "$LEASE_DIR/$lease_id.json" ]; then
+        rm -f "$LEASE_DIR/$lease_id.json"
+        echo "farm: lease $lease_id is no longer yours; forgot it locally. Re-lease: farm lease <device>" >&2
+      fi
+      ;;
+  esac
+  case "$HTTP_CODE" in
+    403) exit $E_403 ;;
+    404) exit $E_404 ;;
+    409) exit $E_409 ;;
+    429) exit $E_429 ;;
+    422) exit $E_422 ;;
+    *) exit $E_HTTP ;;
+  esac
+}
+
+# ---- local lease state -------------------------------------------------------
+
+lease_file() { echo "$LEASE_DIR/$1.json"; }
+
+save_lease() { # lease_id json
+  mkdir -p "$LEASE_DIR"
+  chmod 700 "$FARM_HOME" "$LEASE_DIR" 2>/dev/null || true
+  printf '%s\n' "$2" >"$LEASE_DIR/$1.json.tmp"
+  mv "$LEASE_DIR/$1.json.tmp" "$LEASE_DIR/$1.json"
+}
+
+# merge_lease lease_id json-patch: merges a patch into the stored lease (creating it if needed)
+merge_lease() {
+  local f old='{}'
+  f=$(lease_file "$1")
+  if [ -f "$f" ]; then old=$(cat "$f"); fi
+  save_lease "$1" "$(jq -c -n --argjson a "$old" --argjson b "$2" '$a + $b')"
+}
+
+active_leases() { # prints ids of local leases in state active
+  local f
+  [ -d "$LEASE_DIR" ] || return 0
+  for f in "$LEASE_DIR"/*.json; do
+    [ -e "$f" ] || continue
+    if [ "$(jq -r '.state // empty' "$f")" = active ]; then basename "$f" .json; fi
+  done
+}
+
+# resolve_lease [lease_id]: sets LEASE_ID, LEASE_TOKEN, LEASE_URL
+resolve_lease() {
+  local ids n
+  if [ -n "${1:-}" ]; then
+    LEASE_ID=$1
+  else
+    ids=$(active_leases)
+    n=$(printf '%s' "$ids" | grep -c . || true)
+    if [ "$n" -eq 0 ]; then die $E_LOCAL "no active lease. Get one: farm lease <device>"; fi
+    if [ "$n" -gt 1 ]; then die $E_LOCAL "several active leases ($(echo "$ids" | tr '\n' ' ')); pass the lease_id explicitly"; fi
+    LEASE_ID=$ids
+  fi
+  LEASE_TOKEN=
+  LEASE_URL=$(default_rig_url)
+  local f
+  f=$(lease_file "$LEASE_ID")
+  if [ -f "$f" ]; then
+    LEASE_TOKEN=$(jq -r '.token // empty | tostring' "$f")
+    LEASE_URL=$(jq -r --arg d "$LEASE_URL" '.rig_url // $d' "$f")
+  else
+    note "farm: warning: no local record of lease $LEASE_ID (no fencing token); the rig will likely reject this call"
+  fi
+}
+
+# remember which lease a run/verify belongs to, so later calls can send its token
+map_id() { mkdir -p "$MAP_DIR" && printf '%s\n' "$2" >"$MAP_DIR/$1"; }
+
+# resolve_child id: sets LEASE_ID/LEASE_TOKEN/LEASE_URL from the mapping if known
+resolve_child() {
+  LEASE_ID='' LEASE_TOKEN='' LEASE_URL=$(default_rig_url)
+  if [ -f "$MAP_DIR/$1" ]; then
+    LEASE_ID=$(cat "$MAP_DIR/$1")
+    if [ -f "$(lease_file "$LEASE_ID")" ]; then resolve_lease "$LEASE_ID"; fi
+  fi
+}
+
+secs_left() { jq -r '(.expires_at // empty) | (. - now) | floor' "$1" 2>/dev/null || true; }
+
+# ---- output helpers ----------------------------------------------------------
+
+# Align TSV on stdin into columns (last column unpadded).
+align() {
+  awk -F'\t' '{
+    for (i = 1; i <= NF; i++) { c[NR, i] = $i; l = length($i); if (i < NF && l > w[i] && l <= 72) w[i] = l }
+    n[NR] = NF; rows = NR
+  } END {
+    for (r = 1; r <= rows; r++) {
+      s = ""
+      for (i = 1; i <= n[r]; i++) {
+        if (i < n[r]) s = s sprintf("%-" (w[i] > 0 ? w[i] : 1) "s  ", c[r, i]); else s = s c[r, i]
+      }
+      print s
+    }
+  }'
+}
+
+devices_table() { # jq path to the device array
+  {
+    printf 'ID\tTYPE\tSTATUS\tHOLDER\tQUEUE\tOUTPUTS\n'
+    jq -r "$1"' | .[] | [.id, .type, .status, (.holder // "-"), (.queue_depth // 0 | tostring), ((.outputs // []) | join(","))] | @tsv' "$BODY"
+  } | align
+}
+
+usage() {
+  cat <<'EOF'
+farm: Devin Farm session CLI (rig session API, CONTRACTS C1)
+
+Usage: farm <command> [args]
+
+Discovery
+  rig                               rig health + devices (GET /v1/rig); use as a health check
+  devices                           list devices with status, holder, queue depth, outputs
+  describe <device>                 board facts, wiring, how to write a program, assertion examples
+
+Leases (one device, exclusive, fenced)
+  lease <device> [--ttl S] [--wait S] [--timeout S]
+                                    POST /v1/leases. 200 = active. 202 = queued: polls
+                                    GET /v1/leases/{id} (every <=10 s, printing the queue
+                                    position) until active. --ttl: lease TTL (default 300,
+                                    max 900). --wait: server-side wait per request (max 25).
+                                    --timeout: give up client-side after S s (default: never);
+                                    resume with `farm status <lease_id> --wait`.
+  status [lease_id] [--wait]        GET /v1/leases/{id}; --wait keeps polling until active
+  renew [lease_id]                  POST /v1/leases/{id}/renew (any lease-scoped call also renews)
+  release [lease_id]                POST /v1/leases/{id}/release; ALWAYS do this when done
+  leases                            list leases recorded locally in ~/.farm/leases
+
+Run code on the leased device
+  run <repo_url> <sha> <path> [lease_id]
+                                    POST /v1/leases/{id}/run; prints the run_id
+  run-status <run_id>               GET /v1/runs/{id}; exit 1 if the run failed
+  logs <run_id> [--since TS] [--follow] [--timeout S]
+                                    GET /v1/runs/{id}/logs, paging with since/next.
+                                    --follow keeps reading until the run fails/stops or
+                                    --timeout S (default 60) elapses.
+
+Camera verification
+  verify <assertions.json|-> [--duration S] [--json] [lease_id]
+                                    POST /v1/leases/{id}/verify with C6 assertions (a JSON
+                                    array, {"assertions":[...]}, or one assertion object),
+                                    long-polls GET /v1/verify/{id}?wait=25 until done, and
+                                    prints a results table plus the evidence id.
+                                    Exit 0 only if every camera-verified result PASSED (and
+                                    there was at least one). log_contains results are
+                                    SELF-REPORTED: shown as such, never as PASS, never counted.
+  verify-result <verify_id> [--json]
+                                    re-fetch and print the results of an earlier verify
+
+Defaults
+  lease_id defaults to your only active local lease. Lease-scoped calls send the
+  stored fencing token as X-Fencing-Token automatically.
+
+Environment (defaults read from ~/.farm/env, written by farm-join.sh)
+  FARM_RIG            rig hostname on the tailnet (default rig-1)
+  FARM_RIG_URL        full base URL override (e.g. http://127.0.0.1:8080 for a mock rig)
+  FARM_PROXY          HTTP proxy for userspace tailscale (http://localhost:1055); passed as curl -x
+  FARM_MOCK_NODE      sent as X-Mock-Node (identity for mock rigs only)
+  FARM_EVIDENCE_BASE  public evidence base URL; verify prints ${FARM_EVIDENCE_BASE}/e/<evidence_id>
+  FARM_POLL_S         queue poll interval in seconds (default 5, capped at 10)
+  FARM_HOME           state directory (default ~/.farm)
+
+Errors
+  Rig errors print `error: <code>: <message>` and `next: <call to make>`.
+  Exit codes: 0 ok | 1 verify/run failed or lease ended | 2 usage | 3 rig unreachable
+  | 4 no/ambiguous local lease | 5 HTTP 403 (not_on_tailnet, not_holder, stale_token)
+  | 6 HTTP 404 | 7 HTTP 409 (busy, device_offline, maintenance) | 8 HTTP 429 rate_limited
+  | 9 HTTP 422 lint_failed | 10 other HTTP error | 11 timed out waiting | 12 missing dependency
+EOF
+}
+
+need() { # need N "usage" args...
+  local n=$1 u=$2
+  shift 2
+  if [ "$#" -lt "$n" ]; then die $E_USAGE "usage: farm $u"; fi
+}
+
+is_num() { case "$1" in '' | *[!0-9.]*) return 1 ;; *) return 0 ;; esac; }
+
+# ---- commands ----------------------------------------------------------------
+
+cmd_rig() {
+  local json=0
+  if [ "${1:-}" = --json ]; then json=1; fi
+  api GET "$(default_rig_url)/v1/rig"
+  http_ok || fail_http
+  if [ $json = 1 ]; then jq . "$BODY" && return 0; fi
+  jq -r '"rig \(.rig_id): online=\(.online) model=\(.model // "?") temp=\(.temp_c // "?")C load1=\(.load1 // "?") mem_free=\(.mem_free_mb // "?")MB throttled=\(.throttled) camera_ok=\(.camera_ok) verifier_online=\(.verifier_online) maintenance=\(.maintenance)"' "$BODY"
+  devices_table '(.devices // [])'
+  if [ "$(jq -r '.maintenance' "$BODY")" = true ]; then note "note: rig is in maintenance; leases will be refused (409 maintenance)."; fi
+  if [ "$(jq -r '.camera_ok and .verifier_online' "$BODY")" != true ]; then note "note: camera/verifier not healthy; verify results will fail until it recovers."; fi
+}
+
+cmd_devices() {
+  api GET "$(default_rig_url)/v1/devices"
+  http_ok || fail_http
+  if [ "${1:-}" = --json ]; then jq . "$BODY" && return 0; fi
+  devices_table '.'
+}
+
+cmd_describe() {
+  need 1 "describe <device>" "$@"
+  local rc=0 args=(-sS -m 30 -o "$BODY" -w '%{http_code}' -H 'Accept: text/markdown')
+  if [ -n "${FARM_PROXY:-}" ]; then args+=(-x "$FARM_PROXY"); fi
+  if [ -n "${FARM_MOCK_NODE:-}" ]; then args+=(-H "X-Mock-Node: $FARM_MOCK_NODE"); fi
+  HTTP_CODE=$(curl "${args[@]}" "$(default_rig_url)/v1/devices/$1/describe" 2>"$TMPD/curl_err") || rc=$?
+  if [ "$rc" -ne 0 ]; then die $E_NET "cannot reach the rig (curl exit $rc: $(cat "$TMPD/curl_err")); check: tailscale status"; fi
+  http_ok || fail_http
+  cat "$BODY"
+  echo
+}
+
+# Ask the rig for a lease's state, update the local record. Prints nothing. Sets LSTATE.
+refresh_lease() { # lease_id url token
+  api GET "$2/v1/leases/$1" "" "$3"
+  if ! http_ok; then
+    if [ "$(err_field code)" = unknown ] || [ "$HTTP_CODE" = 404 ]; then
+      rm -f "$(lease_file "$1")"
+      LSTATE=unknown
+      return 0
+    fi
+    if [ "$HTTP_CODE" = 429 ]; then LSTATE=rate_limited && return 0; fi
+    fail_http "$1"
+  fi
+  LSTATE=$(jq -r '.state // "unknown"' "$BODY")
+  case "$LSTATE" in
+    queued | active) merge_lease "$1" "$(jq -c '{state} + (if .position != null then {position} else {} end) + (if .token != null then {token} else {} end) + (if .expires_at != null then {expires_at} else {} end)' "$BODY")" ;;
+    *) rm -f "$(lease_file "$1")" ;;
+  esac
+}
+
+print_active() { # lease_id
+  local f left
+  f=$(lease_file "$1")
+  left=$(secs_left "$f")
+  echo "lease_id: $1"
+  echo "device: $(jq -r '.device // "?"' "$f")"
+  echo "state: active (fencing token stored in $f)"
+  if [ -n "$left" ]; then echo "expires_in: ${left}s (any lease-scoped call renews; release when done)"; fi
+}
+
+# Poll a queued lease until it becomes active. Exits on terminal states/timeouts.
+wait_lease() { # lease_id url timeout
+  local id=$1 url=$2 timeout=${3:-0} start now interval pos last=
+  interval=${FARM_POLL_S:-5}
+  is_num "$interval" || interval=5
+  if [ "${interval%.*}" -gt 10 ] 2>/dev/null; then interval=10; fi
+  start=$(date +%s)
+  while :; do
+    refresh_lease "$id" "$url" "$(jq -r '.token // empty | tostring' "$(lease_file "$id")" 2>/dev/null || true)"
+    now=$(date +%s)
+    case "$LSTATE" in
+      active)
+        print_active "$id"
+        return 0
+        ;;
+      queued)
+        pos=$(jq -r '.position // "?"' "$BODY")
+        if [ "$pos" != "$last" ]; then note "queued: lease $id position $pos (waited $((now - start))s)"; fi
+        last=$pos
+        ;;
+      rate_limited)
+        note "rate limited; backing off 10s"
+        sleep 10
+        continue
+        ;;
+      *)
+        die $E_FAIL "lease $id ended while queued (state: $LSTATE). Lease again: farm lease <device>"
+        ;;
+    esac
+    if [ "$timeout" -gt 0 ] && [ $((now - start)) -ge "$timeout" ]; then
+      note "still queued at position ${pos:-?} after ${timeout}s. The slot is held only while you poll at least every 30 s:"
+      note "  next: farm status $id --wait"
+      exit $E_TIMEOUT
+    fi
+    sleep "$interval"
+  done
+}
+
+cmd_lease() {
+  need 1 "lease <device> [--ttl S] [--wait S] [--timeout S]" "$@"
+  local device=$1 ttl='' wait='' timeout=0 url id other st body
+  shift
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --ttl) ttl=${2:-} && shift 2 ;;
+      --wait) wait=${2:-} && shift 2 ;;
+      --timeout) timeout=${2:-} && shift 2 ;;
+      *) die $E_USAGE "unknown option for lease: $1" ;;
+    esac
+  done
+  for v in "$ttl" "$wait" "$timeout"; do
+    if [ -n "$v" ] && ! is_num "$v"; then die $E_USAGE "--ttl/--wait/--timeout take seconds"; fi
+  done
+  url=$(default_rig_url)
+  # Never hold more than one lease: check what we already hold.
+  for other in $(active_leases); do
+    resolve_lease "$other"
+    refresh_lease "$other" "$LEASE_URL" "$LEASE_TOKEN"
+    if [ "$LSTATE" = active ]; then
+      st=$(jq -r '.device // "?"' "$(lease_file "$other")")
+      die $E_LOCAL "you already hold lease $other on $st. Use it, or release it first: farm release $other"
+    fi
+  done
+  body=$(jq -c -n --arg d "$device" --arg t "$ttl" --arg w "$wait" \
+    '{device: $d} + (if $t != "" then {ttl_s: ($t | tonumber)} else {} end) + (if $w != "" then {wait_s: ($w | tonumber)} else {} end)')
+  api POST "$url/v1/leases" "$body" "" $((${wait%.*} + 35))
+  case "$HTTP_CODE" in
+    200)
+      id=$(jq -r '.lease_id' "$BODY")
+      save_lease "$id" "$(jq -c --arg u "$url" --arg d "$device" '{lease_id, device: (.device // $d), token, expires_at, max_hold_until, state: "active", rig_url: $u}' "$BODY")"
+      print_active "$id"
+      ;;
+    202)
+      id=$(jq -r '.lease_id' "$BODY")
+      save_lease "$id" "$(jq -c --arg u "$url" --arg d "$device" '{lease_id, device: $d, state: "queued", position, rig_url: $u}' "$BODY")"
+      note "queued: lease $id position $(jq -r '.position // "?"' "$BODY") (normal; polling until granted)"
+      wait_lease "$id" "$url" "$timeout"
+      ;;
+    *) fail_http ;;
+  esac
+}
+
+cmd_status() {
+  local id='' w=0 f left
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --wait) w=1 && shift ;;
+      -*) die $E_USAGE "unknown option for status: $1" ;;
+      *) id=$1 && shift ;;
+    esac
+  done
+  if [ -z "$id" ]; then
+    resolve_lease ""
+  else
+    LEASE_ID=$id LEASE_URL=$(default_rig_url) LEASE_TOKEN=
+    if [ -f "$(lease_file "$id")" ]; then resolve_lease "$id"; fi
+  fi
+  if [ $w = 1 ]; then
+    wait_lease "$LEASE_ID" "$LEASE_URL" 0
+    return 0
+  fi
+  refresh_lease "$LEASE_ID" "$LEASE_URL" "$LEASE_TOKEN"
+  if [ "$LSTATE" = unknown ] && [ "$HTTP_CODE" != 200 ]; then fail_http "$LEASE_ID"; fi
+  echo "lease_id: $LEASE_ID"
+  echo "state: $LSTATE"
+  f=$(lease_file "$LEASE_ID")
+  if [ "$LSTATE" = queued ]; then echo "position: $(jq -r '.position // "?"' "$BODY")"; fi
+  if [ "$LSTATE" = active ] && [ -f "$f" ]; then
+    left=$(secs_left "$f")
+    if [ -n "$left" ]; then echo "expires_in: ${left}s"; fi
+  fi
+  case "$LSTATE" in queued | active) ;; *) note "lease is over; get a new one: farm lease <device>" && exit $E_FAIL ;; esac
+}
+
+cmd_renew() {
+  resolve_lease "${1:-}"
+  api POST "$LEASE_URL/v1/leases/$LEASE_ID/renew" "" "$LEASE_TOKEN"
+  http_ok || fail_http "$LEASE_ID"
+  merge_lease "$LEASE_ID" "$(jq -c '{expires_at}' "$BODY")"
+  echo "renewed $LEASE_ID: expires_in $(secs_left "$(lease_file "$LEASE_ID")")s"
+}
+
+cmd_release() {
+  resolve_lease "${1:-}"
+  api POST "$LEASE_URL/v1/leases/$LEASE_ID/release" "" "$LEASE_TOKEN"
+  if ! http_ok; then
+    case "$(err_field code)" in unknown) rm -f "$(lease_file "$LEASE_ID")" ;; esac
+    fail_http "$LEASE_ID"
+  fi
+  rm -f "$(lease_file "$LEASE_ID")"
+  echo "released $LEASE_ID"
+}
+
+cmd_leases() {
+  local f
+  {
+    printf 'LEASE_ID\tDEVICE\tSTATE\tEXPIRES_IN\tRIG\n'
+    if [ -d "$LEASE_DIR" ]; then
+      for f in "$LEASE_DIR"/*.json; do
+        [ -e "$f" ] || continue
+        jq -r '[.lease_id, (.device // "?"), (.state // "?"), (if .expires_at then ((.expires_at - now) | floor | tostring) + "s" else "-" end), (.rig_url // "-")] | @tsv' "$f"
+      done
+    fi
+  } | align
+}
+
+cmd_run() {
+  need 3 "run <repo_url> <sha> <path> [lease_id]" "$@"
+  local body run_id
+  resolve_lease "${4:-}"
+  body=$(jq -c -n --arg r "$1" --arg s "$2" --arg p "$3" '{repo_url: $r, sha: $s, path: $p}')
+  api POST "$LEASE_URL/v1/leases/$LEASE_ID/run" "$body" "$LEASE_TOKEN"
+  http_ok || fail_http "$LEASE_ID"
+  run_id=$(jq -r '.run_id // empty' "$BODY")
+  [ -n "$run_id" ] || die $E_HTTP "rig returned no run_id: $(cat "$BODY")"
+  map_id "$run_id" "$LEASE_ID"
+  echo "$run_id"
+  note "next: farm logs $run_id --follow   |   farm run-status $run_id"
+}
+
+cmd_run_status() {
+  need 1 "run-status <run_id>" "$@"
+  resolve_child "$1"
+  api GET "$LEASE_URL/v1/runs/$1" "" "$LEASE_TOKEN"
+  http_ok || fail_http "$LEASE_ID"
+  jq -r '"state: \(.state)" + (if .build_time_s != null then "\nbuild_time_s: \(.build_time_s)" else "" end)
+    + (if .error then "\nerror: \(.error.code): \(.error.message)" + (if .error.log_tail then "\nlog_tail:\n\(.error.log_tail)" else "" end) else "" end)' "$BODY"
+  if [ "$(jq -r '.state' "$BODY")" = failed ]; then exit $E_FAIL; fi
+}
+
+cmd_logs() {
+  need 1 "logs <run_id> [--since TS] [--follow] [--timeout S]" "$@"
+  local run=$1 since=0 follow=0 timeout=60 start n nxt st
+  shift
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --follow | -f) follow=1 && shift ;;
+      --since) since=${2:-0} && shift 2 ;;
+      --timeout) timeout=${2:-60} && shift 2 ;;
+      *) die $E_USAGE "unknown option for logs: $1" ;;
+    esac
+  done
+  resolve_child "$run"
+  start=$(date +%s)
+  while :; do
+    api GET "$LEASE_URL/v1/runs/$run/logs?since=$since" "" "$LEASE_TOKEN"
+    http_ok || fail_http "$LEASE_ID"
+    n=$(jq -r '(.lines // []) | length' "$BODY")
+    jq -r '(.lines // [])[] | .text' "$BODY"
+    nxt=$(jq -r '.next // empty | tostring' "$BODY")
+    if [ "$n" -gt 0 ] && [ -n "$nxt" ] && [ "$nxt" != "$since" ]; then
+      since=$nxt
+      continue
+    fi
+    if [ -n "$nxt" ]; then since=$nxt; fi
+    [ $follow = 1 ] || break
+    api GET "$LEASE_URL/v1/runs/$run" "" "$LEASE_TOKEN"
+    http_ok || fail_http "$LEASE_ID"
+    st=$(jq -r '.state' "$BODY")
+    case "$st" in
+      failed | stopped)
+        note "run $run: $st$(jq -r 'if .error then " (\(.error.code): \(.error.message))" else "" end' "$BODY")"
+        break
+        ;;
+    esac
+    if [ $(($(date +%s) - start)) -ge "$timeout" ]; then
+      note "run $run still $st after ${timeout}s of following"
+      break
+    fi
+    sleep 2
+  done
+  note "next: farm logs $run --since $since"
+}
+
+# Print a verify result table from $1 (a GET /v1/verify body) and return the verdict exit code.
+render_verify() { # file json-flag
+  local f=$1 rc
+  if [ "$2" = 1 ]; then jq . "$f"; fi
+  if [ "$(jq -r '.state' "$f")" = error ]; then
+    note "verify error: $(jq -r '.error // .detail // "verifier reported an error" | tostring' "$f")"
+    return $E_FAIL
+  fi
+  if [ "$2" != 1 ]; then
+    {
+      printf 'TYPE\tTARGET\tVERDICT\tMEASURED\tEXPECTED\tUNCERTAINTY\tDETAIL\n'
+      jq -r '
+        def j: if . == null then "-" else tojson end;
+        def unc: if . == null or . == {} then "-"
+                 elif type == "object" then "±" + ([to_entries[] | "\(.value) \(.key)"] | join(", "))
+                 else "±\(.)" end;
+        (.results // [])[] | [
+          .type, (.target // "-"),
+          (if .self_reported == true then "SELF-REPORTED"
+           elif .passed == true and .measured != null then "PASS" else "FAIL" end),
+          (.measured | j), (.expected | j), (.uncertainty | unc), (.detail // "")
+        ] | @tsv' "$f"
+    } | align
+  fi
+  rc=$(jq -r '[(.results // [])[] | select(.self_reported != true)] as $c
+    | if ($c | length) == 0 then 1 elif all($c[]; .passed == true and .measured != null) then 0 else 1 end' "$f")
+  jq -r '[(.results // [])[] | select(.self_reported != true)] as $c
+    | [(.results // [])[] | select(.self_reported == true)] as $s
+    | "VERDICT: " + (if ($c | length) > 0 and all($c[]; .passed == true and .measured != null) then "PASS" else "FAIL" end)
+      + " (\([$c[] | select(.passed == true and .measured != null)] | length)/\($c | length) camera-verified assertions passed"
+      + (if ($s | length) > 0 then "; \($s | length) self-reported result(s) not counted" else "" end) + ")"
+      + (if ($c | length) == 0 then "\nno camera-verified assertions: self-reported results are never sufficient" else "" end)' "$f"
+  local ev
+  ev=$(jq -r '.evidence.id // empty' "$f")
+  if [ -n "$ev" ]; then
+    echo "evidence_id: $ev"
+    if [ -n "${FARM_EVIDENCE_BASE:-}" ]; then echo "evidence_url: ${FARM_EVIDENCE_BASE%/}/e/$ev"; fi
+  else
+    echo "evidence_id: none"
+  fi
+  return "$rc"
+}
+
+poll_verify() { # verify_id timeout -> leaves final body in $BODY
+  local vid=$1 timeout=$2 start st
+  start=$(date +%s)
+  while :; do
+    api GET "$LEASE_URL/v1/verify/$vid?wait=25" "" "$LEASE_TOKEN" 45
+    if ! http_ok; then
+      if [ "$HTTP_CODE" = 429 ]; then sleep 5 && continue; fi
+      fail_http "$LEASE_ID"
+    fi
+    st=$(jq -r '.state' "$BODY")
+    case "$st" in done | error) break ;; esac
+    if [ $(($(date +%s) - start)) -ge "$timeout" ]; then
+      note "verify $vid still $st after ${timeout}s; check later: farm verify-result $vid"
+      exit $E_TIMEOUT
+    fi
+    note "verify $vid: $st..."
+  done
+  mkdir -p "$VERIFY_DIR"
+  cp "$BODY" "$VERIFY_DIR/$vid.json"
+}
+
+cmd_verify() {
+  need 1 "verify <assertions.json|-> [--duration S] [--json] [lease_id]" "$@"
+  local src=$1 dur='' json=0 lid='' assertions body vid rc=0
+  shift
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --duration) dur=${2:-} && shift 2 ;;
+      --json) json=1 && shift ;;
+      -*) die $E_USAGE "unknown option for verify: $1" ;;
+      *) lid=$1 && shift ;;
+    esac
+  done
+  if [ -n "$dur" ] && ! is_num "$dur"; then die $E_USAGE "--duration takes seconds"; fi
+  if [ "$src" = - ]; then
+    cat >"$TMPD/assertions"
+  else
+    [ -f "$src" ] || die $E_USAGE "no such file: $src"
+    cp "$src" "$TMPD/assertions"
+  fi
+  assertions=$(jq -c 'if type == "array" then . elif type == "object" and has("assertions") then .assertions elif type == "object" then [.] else error("expected an array of C6 assertions") end' "$TMPD/assertions" 2>&1) ||
+    die $E_USAGE "invalid assertions JSON: $assertions"
+  [ "$(printf '%s' "$assertions" | jq 'length')" -gt 0 ] || die $E_USAGE "no assertions given"
+  resolve_lease "$lid"
+  body=$(jq -c -n --argjson a "$assertions" --arg d "$dur" '{assertions: $a} + (if $d != "" then {duration_s: ($d | tonumber)} else {} end)')
+  api POST "$LEASE_URL/v1/leases/$LEASE_ID/verify" "$body" "$LEASE_TOKEN"
+  http_ok || fail_http "$LEASE_ID"
+  vid=$(jq -r '.verify_id // empty' "$BODY")
+  [ -n "$vid" ] || die $E_HTTP "rig returned no verify_id: $(cat "$BODY")"
+  map_id "$vid" "$LEASE_ID"
+  note "verify_id: $vid (camera observing; long-polling for results)"
+  poll_verify "$vid" 240
+  render_verify "$VERIFY_DIR/$vid.json" "$json" || rc=$?
+  exit "$rc"
+}
+
+cmd_verify_result() {
+  need 1 "verify-result <verify_id> [--json]" "$@"
+  local rc=0 json=0
+  if [ "${2:-}" = --json ]; then json=1; fi
+  resolve_child "$1"
+  poll_verify "$1" 60
+  render_verify "$VERIFY_DIR/$1.json" "$json" || rc=$?
+  exit "$rc"
+}
+
+main() {
+  local cmd=${1:-help}
+  if [ $# -gt 0 ]; then shift; fi
+  case "$cmd" in
+    rig) cmd_rig "$@" ;;
+    devices) cmd_devices "$@" ;;
+    describe) cmd_describe "$@" ;;
+    lease) cmd_lease "$@" ;;
+    status) cmd_status "$@" ;;
+    renew) cmd_renew "$@" ;;
+    release) cmd_release "$@" ;;
+    leases) cmd_leases "$@" ;;
+    run) cmd_run "$@" ;;
+    run-status) cmd_run_status "$@" ;;
+    logs) cmd_logs "$@" ;;
+    verify) cmd_verify "$@" ;;
+    verify-result) cmd_verify_result "$@" ;;
+    help | -h | --help) usage ;;
+    *) usage >&2 && exit $E_USAGE ;;
+  esac
+}
+
+main "$@"

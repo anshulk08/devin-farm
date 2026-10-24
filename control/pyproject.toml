@@ -1,0 +1,31 @@
+[project]
+name = "farm-control"
+version = "0.1.0"
+description = "Devin Farm control plane: rig aggregation, Devin sessions, bubble-map API"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "httpx>=0.27",
+    "pyyaml>=6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+farm-control = "farm_control.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["farm_control*"]
+
+[tool.setuptools.package-data]
+"farm_control.mock" = ["tickets/*/*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

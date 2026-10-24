@@ -1,0 +1,4 @@
+device_type: unoq
+entry: .
+timeout_s: 180
+outputs: [unoq.matrix]

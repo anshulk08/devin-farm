@@ -1,0 +1,45 @@
+// Devin Farm tailnet policy (docs/CONTRACTS.md C0). Paste into the admin console
+// (Access controls → JSON editor) or push via the API. See tailnet/README.md.
+{
+  "tagOwners": {
+    "tag:rig":           ["autogroup:admin"],
+    "tag:control":       ["autogroup:admin"],
+    "tag:devin-session": ["tag:control", "autogroup:admin"]
+  },
+  // HUMAN: replace "<emails>" with the team's login emails, e.g.
+  // ["alice@example.com", "bob@github"]. The policy will not save with the placeholder.
+  "groups": { "group:team": ["<emails>"] },
+  "grants": [
+    { "src": ["tag:devin-session"], "dst": ["tag:rig"],     "ip": ["tcp:8080"] },
+    { "src": ["tag:control"],       "dst": ["tag:rig"],     "ip": ["tcp:8080", "tcp:8081"] },
+    { "src": ["group:team"],        "dst": ["tag:rig"],     "ip": ["*"] },
+    { "src": ["group:team"],        "dst": ["tag:control"], "ip": ["*"] }
+  ],
+  "ssh": [{ "action": "accept", "src": ["group:team"], "dst": ["tag:rig"], "users": ["farm"] }],
+  "nodeAttrs": [{ "target": ["tag:control"], "attr": ["funnel"] }],
+
+  // Policy tests: Tailscale evaluates these on every save and rejects the policy if one fails.
+  // Destinations are "<tag>:<port>"; "proto" narrows the check to TCP (matching the tcp: grants).
+  "tests": [
+    {
+      // Sessions reach only the rig session API.
+      "src": "tag:devin-session",
+      "proto": "tcp",
+      "accept": ["tag:rig:8080"],
+      "deny": [
+        "tag:rig:8081",           // rig control/admin API
+        "tag:rig:22",             // rig SSH
+        "tag:rig:8090",           // verifier (also bound to 127.0.0.1 on the rig)
+        "tag:control:443",        // control plane (public view, via the tailnet path)
+        "tag:control:8443",       // control operator API (tailscale serve)
+        "tag:devin-session:8080"  // other sessions
+      ]
+    },
+    {
+      // Control polls the session API and the control/admin API + event stream.
+      "src": "tag:control",
+      "proto": "tcp",
+      "accept": ["tag:rig:8080", "tag:rig:8081"]
+    }
+  ]
+}

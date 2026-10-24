@@ -1,0 +1,4 @@
+{"type": "object", "required": ["claimed_success", "final_sha"],
+ "properties": {"claimed_success": {"type": "boolean"}, "confidence": {"type": "number"},
+                "final_sha": {"type": "string"}, "evidence_ids": {"type": "array", "items": {"type": "string"}},
+                "notes": {"type": "string"}}}
