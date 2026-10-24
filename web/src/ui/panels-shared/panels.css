@@ -1,0 +1,58 @@
+/* Shared controls for drawers, the new-session modal and the command bar. Colours come from tokens.css only. */
+.pbtn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 32px; padding: 6px 12px;
+  background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+  font-size: var(--fs-sm); font-weight: 500; cursor: pointer;
+  transition: background 0.12s var(--ease), border-color 0.12s var(--ease);
+}
+.pbtn:hover:not(:disabled) { background: var(--line); border-color: var(--text-faint); }
+.pbtn:disabled { color: var(--text-faint); border-color: var(--line); cursor: not-allowed; }
+.pbtn-strong { background: var(--text); color: var(--ground); border-color: var(--text); font-weight: 600; }
+.pbtn-strong:hover:not(:disabled) { background: #fff; border-color: #fff; }
+.pbtn-strong:disabled { background: var(--line); color: var(--text-faint); border-color: var(--line); }
+
+.pnote { color: var(--text-dim); font-size: var(--fs-sm); }
+.perror { color: var(--warn); font-size: var(--fs-sm); margin: 6px 0 0; }
+.confirm-wrap { display: inline-flex; align-items: center; gap: 10px; }
+.confirm-box {
+  border: 1px solid var(--line-strong); border-radius: var(--r-md);
+  background: var(--ground-2); padding: 12px; width: 100%;
+}
+.confirm-q { margin: 0 0 10px; font-size: var(--fs-sm); line-height: 1.45; }
+.confirm-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Verdict chips. Green and red only for camera verdicts; amber for self-reported; never green for self. */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 9px; border-radius: 999px;
+  font-size: var(--fs-xs); font-weight: 600; white-space: nowrap;
+  border: 1px solid currentColor;
+}
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip-pass { color: var(--ok); }
+.chip-fail { color: var(--bad); }
+.chip-self { color: var(--warn); }
+.chip-info, .chip-neutral { color: var(--text-dim); }
+.chip-off { color: var(--off); }
+
+/* Backdrop shared by modal dialogs. */
+.pbackdrop {
+  position: fixed; inset: 0; z-index: 40;
+  background: color-mix(in srgb, var(--ground) 72%, transparent);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 12vh 16px 16px;
+  animation: pfade 0.14s var(--ease);
+}
+@keyframes pfade { from { opacity: 0; } }
+
+.pfield { display: grid; gap: 6px; }
+.plabel { font-size: var(--fs-sm); font-weight: 500; color: var(--text-dim); }
+.pinput, .ptextarea, .pselect {
+  width: 100%; background: var(--ground-2); color: var(--text);
+  border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+  padding: 8px 10px; font: inherit; font-size: var(--fs-sm);
+}
+.ptextarea { resize: vertical; min-height: 64px; line-height: 1.45; }
+.pinput:focus-visible, .ptextarea:focus-visible, .pselect:focus-visible { outline: 2px solid var(--s7); outline-offset: 0; border-color: transparent; }

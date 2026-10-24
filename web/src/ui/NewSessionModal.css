@@ -1,0 +1,40 @@
+.nsm {
+  width: min(560px, 100%);
+  max-height: 80vh; overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--r-lg);
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.8);
+  padding: 20px 22px;
+  animation: nsm-in 0.16s var(--ease);
+}
+@keyframes nsm-in { from { transform: translateY(8px); opacity: 0; } }
+.nsm form { display: grid; gap: 16px; }
+.nsm-head h2 { margin: 0 0 4px; font-size: var(--fs-lg); font-weight: 600; letter-spacing: -0.01em; }
+.nsm-head p { margin: 0; line-height: 1.45; }
+
+.nsm-tickets { border: 0; margin: 0; padding: 0; display: grid; gap: 6px; }
+.nsm-tickets legend { margin-bottom: 6px; padding: 0; }
+.nsm-sub { margin: 0 0 4px; }
+.nsm-ticket {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px;
+  padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--ground-2); cursor: pointer; font-size: var(--fs-sm);
+}
+.nsm-ticket:hover { border-color: var(--line-strong); }
+.nsm-ticket[data-checked="true"] { border-color: var(--text-dim); background: var(--panel-2); }
+.nsm-ticket input { margin: 0; accent-color: var(--text); }
+.nsm-ticket:has(input:focus-visible) { outline: 2px solid var(--s7); outline-offset: 2px; }
+.nsm-ticket-id { color: var(--text-faint); font-size: var(--fs-xs); }
+@media (max-width: 520px) {
+  .nsm-ticket { grid-template-columns: auto 1fr; }
+  .nsm-ticket-id { grid-column: 2; }
+}
+
+.nsm-grid { display: grid; grid-template-columns: 1fr 140px; gap: 12px; }
+@media (max-width: 520px) { .nsm-grid { grid-template-columns: 1fr; } }
+.nsm-cap { display: flex; align-items: center; gap: 8px; }
+.nsm-cap .pinput { width: 90px; }
+.nsm-budget { margin: -6px 0 0; }
+.v-warn { color: var(--warn); }
+
+.nsm-foot { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; padding-top: 4px; }
+.nsm-foot .pnote { margin-right: auto; }

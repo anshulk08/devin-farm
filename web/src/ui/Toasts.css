@@ -1,0 +1,43 @@
+/* Bottom-left, above the ~56px timeline. Tone colours follow the verdict semantics: never green for self-reported. */
+.toasts {
+  position: absolute;
+  left: max(24px, 2.5vw);
+  bottom: calc(56px + 12px);
+  z-index: 30;
+  display: flex; flex-direction: column-reverse; gap: 8px;
+  width: min(420px, calc(100vw - 48px));
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  display: flex; align-items: stretch;
+  background: var(--panel-2);
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid currentColor;
+  border-radius: var(--r-md);
+  box-shadow: 0 14px 34px -18px rgba(0, 0, 0, 0.8);
+  animation: toast-in 0.2s var(--ease);
+}
+@keyframes toast-in { from { transform: translateY(8px); opacity: 0; } }
+.toast-pass { color: var(--ok); }
+.toast-fail { color: var(--bad); }
+.toast-self { color: var(--warn); }
+.toast-info { color: var(--text-dim); }
+
+.toast-main {
+  flex: 1; min-width: 0;
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 6px 10px 12px;
+  background: none; border: 0; text-align: left; cursor: pointer; color: inherit;
+}
+.toast-icon { flex: none; margin-top: 2px; }
+.toast-body { display: grid; gap: 2px; min-width: 0; }
+.toast-tone { font-size: var(--fs-sm); font-weight: 600; }
+.toast-text { color: var(--text); font-size: var(--fs-sm); line-height: 1.4; overflow-wrap: anywhere; }
+.toast-x {
+  flex: none; width: 34px;
+  display: grid; place-items: center;
+  background: none; border: 0; color: var(--text-faint); cursor: pointer;
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+.toast-x:hover { color: var(--text); }
