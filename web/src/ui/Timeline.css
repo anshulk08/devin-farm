@@ -3,7 +3,7 @@
   grid-row: 3;
   position: relative;
   z-index: 4;
-  height: 48px;
+  height: var(--timeline-h);
   display: flex;
   align-items: center;
   gap: 12px;

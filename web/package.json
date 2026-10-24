@@ -9,7 +9,8 @@
     "build:public": "VITE_PUBLIC=1 vite build --outDir dist-public",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "fixture": "node scripts/make-demo-fixture.mjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.8.4",

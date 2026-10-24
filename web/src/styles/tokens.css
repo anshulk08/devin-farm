@@ -24,7 +24,7 @@
   --s3: #e8d14a; /* gold */
   --s4: #4fd6e0; /* cyan (sessions only; reads as distinct from matrix blue) */
   --s5: #ff9fb2; /* pink */
-  --s6: #b9d36a; /* olive-lime, desaturated so it never reads as verdict green */
+  --s6: #d9a77c; /* tan (was olive-lime: read as verdict green on the dark ground) */
   --s7: #c9b8ff; /* lavender */
 
   --font-ui: "Inter Tight", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -41,6 +41,8 @@
   --r-lg: 18px;
 
   --drawer-w: 420px;
+  --topbar-h: 60px;
+  --timeline-h: 48px;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   color-scheme: dark;
 }

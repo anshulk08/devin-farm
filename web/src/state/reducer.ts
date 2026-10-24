@@ -69,11 +69,15 @@ export const initialState: FarmState = {
   connection: "connecting",
 };
 
+const hasMeasurement = (r: AssertionResult) => r.measured !== undefined && r.measured !== null;
+
+/** Red only when the camera measured a contradiction; green only when every camera check measured a pass.
+ *  Anything the camera couldn't see, or that is only self-reported, is amber. */
 export function verdictTone(results: AssertionResult[]): VerdictTone {
-  const measured = results.filter((r) => !r.self_reported);
-  if (measured.some((r) => !r.passed)) return "fail";
-  if (measured.length === 0) return "self"; // only log_contains: never green
-  if (results.some((r) => r.self_reported && !r.passed)) return "fail";
+  const camera = results.filter((r) => !r.self_reported);
+  if (camera.some((r) => !r.passed && hasMeasurement(r))) return "fail";
+  if (camera.length === 0 || camera.some((r) => !hasMeasurement(r) || !r.passed)) return "self";
+  if (results.some((r) => r.self_reported && !r.passed)) return "self";
   return "pass";
 }
 
@@ -160,6 +164,7 @@ export function applyEvent(s: FarmState, ev: FarmEvent): FarmState {
       const sessionId = ids.sessionFromHolder(d.holder);
       let edges = s.edges;
       let toasts = s.toasts;
+      let devices = s.devices;
       switch (d.event) {
         case "queued":
           edges = {
@@ -174,6 +179,7 @@ export function applyEvent(s: FarmState, ev: FarmEvent): FarmState {
           };
           break;
         case "granted":
+          if (devices[deviceId]) devices = { ...devices, [deviceId]: { ...devices[deviceId], run: undefined, logs: [], verifying: undefined } };
           edges = withoutEdge(edges, ids.queue(d.lease_id));
           edges = renumberQueue(edges, deviceId);
           edges = {
@@ -209,7 +215,7 @@ export function applyEvent(s: FarmState, ev: FarmEvent): FarmState {
           }
           break;
       }
-      return { ...s, edges, toasts };
+      return { ...s, edges, toasts, devices };
     }
 
     case "run": {
@@ -240,7 +246,7 @@ export function applyEvent(s: FarmState, ev: FarmEvent): FarmState {
         return { ...s, devices: { ...s.devices, [id]: { ...rt, verifying: { verify_id: d.verify_id, since: d.ts } } } };
       }
       const results = d.results ?? [];
-      const tone: VerdictTone = d.state === "error" ? "fail" : verdictTone(results);
+      const tone: VerdictTone = d.state === "error" ? "self" : verdictTone(results); // an error measured nothing
       const lastVerdict: Verdict = { verify_id: d.verify_id, tone, results, at: d.ts };
       const text = d.state === "error" ? `${d.device}: verify error` : `${d.device}: ${verdictText(results)}`;
       return {

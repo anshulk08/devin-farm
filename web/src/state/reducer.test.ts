@@ -144,9 +144,9 @@ describe("verify", () => {
     expect(s.toasts.at(-1)!.text).toContain("self-reported only");
   });
 
-  it("error is a fail", () => {
+  it("error is amber, not red: nothing was measured", () => {
     const s = run(base(), verify("error"));
-    expect(s.devices[PICO1].lastVerdict!.tone).toBe("fail");
+    expect(s.devices[PICO1].lastVerdict!.tone).toBe("self");
   });
 
   it("verdictTone: any measured fail wins", () => {
@@ -154,7 +154,10 @@ describe("verify", () => {
     expect(verdictTone([measured(true)])).toBe("pass");
     expect(verdictTone([selfReported(true)])).toBe("self");
     expect(verdictTone([selfReported(false)])).toBe("self");
-    expect(verdictTone([measured(true), selfReported(false)])).toBe("fail");
+    expect(verdictTone([measured(true), selfReported(false)])).toBe("self");
+    // camera couldn't see the device: no measurement, so never red and never green
+    expect(verdictTone([{ ...measured(false), measured: undefined }])).toBe("self");
+    expect(verdictTone([{ ...measured(true), measured: undefined }])).toBe("self");
     expect(verdictTone([])).toBe("self");
   });
 

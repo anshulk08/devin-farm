@@ -44,6 +44,8 @@ export function FarmProvider({ children, mode: modeOverride }: { children: React
       },
       onConnection: (status) => dispatch({ type: "connection", status }),
       onReset: () => {
+        logRef.current.length = 0;
+        setLogVersion((v) => v + 1);
         dispatch({ type: "reset" });
       },
     });
