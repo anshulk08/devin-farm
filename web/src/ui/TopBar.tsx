@@ -4,8 +4,8 @@ import { api, PUBLIC } from "../data/api";
 import "./TopBar.css";
 
 function ModeBadge() {
-  const { mode, scrubTs } = useFarm();
-  const kind = scrubTs != null || mode.mode === "replay" ? "replay" : mode.mode === "mock" ? "mock" : "live";
+  const { mode, scrubTs, live } = useFarm();
+  const kind = scrubTs != null || mode.mode === "replay" ? "replay" : mode.mode === "mock" || live.feedMock ? "mock" : "live";
   const text = { live: "Live", replay: "Replay", mock: "Mock data" }[kind];
   return (
     <span className={`badge badge-${kind}`} role="status" aria-label={`Mode: ${text}`}>

@@ -24,6 +24,8 @@ export interface GEdge {
 export interface Graph {
   nodes: GNode[];
   edges: GEdge[];
+  /** farm-control labels a mock-driver stack "mock" (C10); the UI must not call that Live. */
+  mode?: string;
 }
 
 // ---- C6 assertion results ----
@@ -94,6 +96,8 @@ export type FarmEvent =
         acus: number;
         title: string;
         url: string;
+        created_at?: number;
+        ticket_id?: string;
       };
     }
   | { name: "session_message"; data: Base & { farm_id: string; source: "user" | "devin"; text: string } };

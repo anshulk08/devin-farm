@@ -3,7 +3,7 @@ import { applyEvent, initialState, type FarmState } from "../state/reducer";
 import { sampleGraph, T0 } from "../data/sampleGraph";
 import type { FarmEvent } from "../state/types";
 import { computeLayout, layoutInputFrom, layoutKey } from "./layout";
-import { buildEdges, buildNodes, sessionInitial, shortFarmId, stabilize, type DeviceData, type LeaseEdgeData, type MapEdge, type MapNode } from "./build";
+import { buildEdges, buildNodes, shortFarmId, stabilize, type DeviceData, type LeaseEdgeData, type MapEdge, type MapNode } from "./build";
 import { verticalCurve } from "./edges/edges";
 import { Tooltip } from "./Tooltip";
 import { SESSION_H } from "./geometry";
@@ -116,8 +116,6 @@ describe("build", () => {
   });
 
   it("derives short labels", () => {
-    expect(sessionInitial("pico/led-sequence-trap")).toBe("L");
-    expect(sessionInitial("unoq/matrix-heart")).toBe("M");
     expect(shortFarmId("session:s-1a2b3c4d")).toBe("1a2b");
     expect(shortFarmId("devin-s-9c0d1e2f")).toBe("9c0d");
   });

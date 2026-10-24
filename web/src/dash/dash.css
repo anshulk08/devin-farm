@@ -81,7 +81,8 @@
   align-items: center; gap: 0 32px;
   padding: 9px 16px; background: none; border: 0; text-align: left; cursor: pointer;
 }
-.srow-text { display: grid; gap: 6px; min-width: 0; }
+.srow-text { display: grid; gap: 4px; min-width: 0; }
+.srow-id { color: var(--text-faint); font-size: 12px; }
 .srow-title { font-size: 18px; font-weight: 500; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .srow-meta { color: var(--text-dim); font-size: 14.5px; white-space: pre; overflow: hidden; text-overflow: ellipsis; }
 .srow-more { flex: none; width: 54px; display: grid; place-items: center; background: none; border: 0; border-left: 1px solid #1f2125; color: var(--text-dim); cursor: pointer; margin: 10px 0; }
@@ -241,5 +242,6 @@
 /* ---------- overlays in the dashboard frame ---------- */
 .dash-app { position: relative; height: 100%; overflow: hidden; }
 .dash-app .drawer { top: 0; bottom: 0; }
-.dash-app .toasts { left: auto; right: 24px; bottom: 24px; }
-@media (max-width: 720px) { .dash-app .toasts { left: 12px; right: 12px; bottom: 12px; } }
+.dash-app[data-drawer="open"] .toasts { right: calc(var(--drawer-w) + 24px); }
+.dash-app .toasts { left: auto; right: 24px; top: auto; bottom: 24px; flex-direction: column-reverse; width: min(420px, calc(100vw - 48px)); }
+@media (max-width: 720px) { .dash-app[data-drawer="open"] .toasts, .dash-app .toasts { left: 12px; right: 12px; top: auto; bottom: 12px; } }

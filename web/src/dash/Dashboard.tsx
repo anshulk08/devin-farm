@@ -125,6 +125,7 @@ function SessionRowView({ r, onSelect }: { r: SessionRow; onSelect: (id: string)
         <Avatar letter={r.letter} hue={r.hue} />
         <span className="srow-text">
           <span className="srow-title">{r.title}</span>
+          <span className="srow-id mono">{r.shortId}</span>
           <span className="srow-sub only-phone">
             <Pill pill={r.pill} />
             <span className="mono srow-short">{r.short}</span>

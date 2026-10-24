@@ -15,6 +15,8 @@ export interface SessionRow {
   letter: string;
   hue: string;
   title: string;
+  /** "s-1a2b3c4d" → "1a2b": the secondary line under the ticket name. */
+  shortId: string;
   pill: Pill;
   /** "tok 17 · 3:12 left" or "#1 in line (pico-1)" */
   meta: string;
@@ -59,7 +61,7 @@ export function sessionRows(s: FarmState, now: number): SessionRow[] {
     } else if (pill.label === "Finished" || pill.label === "Stopped") {
       meta = short = "Released";
     }
-    return { id: n.id, letter: sessionLetter(n.id), hue: sessionHue(n.id), title: n.label, pill, meta, short };
+    return { id: n.id, letter: sessionLetter(n.id), hue: sessionHue(n.id), title: n.label, shortId: String(n.data.farm_id ?? n.id).replace(/^session:/, "").replace(/^s-/, "").slice(0, 4), pill, meta, short };
   });
 }
 

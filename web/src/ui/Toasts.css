@@ -1,11 +1,11 @@
-/* Bottom-left, above the ~56px timeline. Tone colours follow the verdict semantics: never green for self-reported. */
+/* Top-right under the top bar (clear of the map cards and the timeline). Tone colours follow the verdict semantics: never green for self-reported. */
 .toasts {
   position: absolute;
-  left: max(24px, 2.5vw);
-  bottom: calc(56px + 12px);
+  right: max(24px, 2.5vw);
+  top: 60px;
   z-index: 30;
-  display: flex; flex-direction: column-reverse; gap: 8px;
-  width: min(420px, calc(100vw - 48px));
+  display: flex; flex-direction: column; gap: 8px;
+  width: min(340px, calc(100vw - 48px));
   pointer-events: none;
 }
 .toast {

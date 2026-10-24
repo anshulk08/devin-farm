@@ -45,6 +45,8 @@ export interface FarmState {
   rigHistory: Record<string, { ts: number; temp_c: number; load1: number }[]>; // by rig node id
   toasts: Toast[];
   connection: Connection;
+  /** The control plane said its feed is mock (graph_snapshot.mode). */
+  feedMock: boolean;
 }
 
 export type Action =
@@ -67,7 +69,11 @@ export const initialState: FarmState = {
   rigHistory: {},
   toasts: [],
   connection: "connecting",
+  feedMock: false,
 };
+
+/** Primary line for a session: the ticket (clean), not the raw Devin title ("farm pico-blink s-1a2b3c4d"). */
+export const sessionName = (title: string, ticketId: unknown): string => (typeof ticketId === "string" && ticketId ? ticketId : title);
 
 const hasMeasurement = (r: AssertionResult) => r.measured !== undefined && r.measured !== null;
 
@@ -129,9 +135,9 @@ export function applyEvent(s: FarmState, ev: FarmEvent): FarmState {
     case "graph_snapshot": {
       const nodes: Record<string, GNode> = {};
       const edges: Record<string, GEdge> = {};
-      ev.data.nodes.forEach((n) => (nodes[n.id] = n));
+      ev.data.nodes.forEach((n) => (nodes[n.id] = n.kind === "session" ? { ...n, label: sessionName(n.label, n.data.ticket_id) } : n));
       ev.data.edges.forEach((e) => (edges[e.id] = e));
-      return { ...s, nodes, edges };
+      return { ...s, nodes, edges, feedMock: ev.data.mode === "mock" };
     }
 
     case "rig_health": {
@@ -270,16 +276,17 @@ export function applyEvent(s: FarmState, ev: FarmEvent): FarmState {
       const node: GNode = {
         id,
         kind: "session",
-        label: d.title,
+        label: sessionName(d.title, d.ticket_id ?? existing?.data.ticket_id),
         status: d.status,
         data: {
           ...(existing?.data ?? {}),
           farm_id: d.farm_id,
+          ticket_id: d.ticket_id ?? existing?.data.ticket_id,
           devin_session_id: d.devin_session_id,
           node_name: d.node_name ?? null,
           acus: d.acus,
           url: d.url,
-          created_at: existing?.data.created_at ?? d.ts,
+          created_at: d.created_at ?? existing?.data.created_at ?? d.ts,
         },
       };
       return { ...s, nodes: { ...s.nodes, [id]: node } };

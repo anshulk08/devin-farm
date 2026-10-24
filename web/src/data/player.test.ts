@@ -28,7 +28,7 @@ function harness() {
 
 const flush = async () => {
   // let the fetch/text promises resolve under fake timers
-  for (let i = 0; i < 5; i++) await Promise.resolve();
+  for (let i = 0; i < 50; i++) await Promise.resolve();
 };
 
 beforeEach(() => {

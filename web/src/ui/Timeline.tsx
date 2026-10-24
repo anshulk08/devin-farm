@@ -56,7 +56,7 @@ const agoWords = (s: number) => {
 export function Timeline() {
   const { live, log, logVersion, scrubTs, setScrubTs, mode } = useFarm();
   // Only a live feed may say "Live" (honesty rule: mocks and replays are always labelled).
-  const headWord = mode.mode === "live" ? "Live" : "Latest";
+  const headWord = mode.mode === "live" && !live.feedMock ? "Live" : live.feedMock || mode.mode === "mock" ? "Mock" : "Latest";
   const pb = useSyncExternalStore(playback.subscribe, playback.getSnapshot, playback.getSnapshot);
   const trackRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);

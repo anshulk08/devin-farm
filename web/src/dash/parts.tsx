@@ -18,7 +18,7 @@ export function Avatar({ letter, hue, size = "md" }: { letter: string; hue: stri
 /** Live / Mock data / Replay. Only a real feed may say Live. */
 export function ModePill() {
   const { mode, scrubTs, live } = useFarm();
-  const kind = scrubTs != null || mode.mode === "replay" ? "replay" : mode.mode === "mock" ? "mock" : live.connection === "open" ? "live" : "lost";
+  const kind = scrubTs != null || mode.mode === "replay" ? "replay" : mode.mode === "mock" || live.feedMock ? "mock" : live.connection === "open" ? "live" : "lost";
   const text = { live: "Live", replay: "Replay", mock: "Mock data", lost: "Reconnecting" }[kind];
   return (
     <span className={`mode-pill mode-${kind}`} role="status" aria-label={`Feed: ${text}`}>

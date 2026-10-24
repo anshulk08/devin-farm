@@ -4,7 +4,7 @@ import type { Edge, Node } from "@xyflow/react";
 import type { FarmState, VerdictTone } from "../state/reducer";
 import type { GNode } from "../state/types";
 import { ids } from "../state/types";
-import { sessionHue, splitDeviceId } from "../state/selectors";
+import { sessionHue, sessionLetter, splitDeviceId } from "../state/selectors";
 import type { Layout } from "./layout";
 import {
   CAMERA_H,
@@ -125,13 +125,6 @@ export function boardOf(n: GNode): BoardType {
   return "other";
 }
 
-/** "pico/led-sequence-trap" → "L"; falls back to the first letter of the label. */
-export function sessionInitial(title: string): string {
-  const slug = title.includes("/") ? title.split("/").pop()! : title;
-  const m = slug.match(/[A-Za-z0-9]/);
-  return (m ? m[0] : "?").toUpperCase();
-}
-
 /** "s-1a2b3c4d" → "1a2b". */
 export function shortFarmId(id: string): string {
   return id.replace(/^session:/, "").replace(/^devin-/, "").replace(/^s-/, "").slice(0, 4);
@@ -184,7 +177,7 @@ export function buildNodes(s: FarmState, layout: Layout, opts: BuildOptions): Ma
       ariaLabel: `Session ${n.label}, ${n.status}`,
       data: {
         title: n.label,
-        initial: sessionInitial(n.label),
+        initial: sessionLetter(n.id),
         shortId: shortFarmId(String(n.data.farm_id ?? n.id)),
         status: n.status,
         hue: sessionHue(n.id),
