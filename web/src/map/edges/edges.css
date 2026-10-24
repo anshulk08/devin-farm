@@ -1,0 +1,108 @@
+/* Edges (FRONTEND §4). Lease = thick solid session hue; queue = dashed hue at 50 %; watches = faint dotted;
+   attached = short thin neutral. Transitions on stroke/opacity make hand-overs read as one motion. */
+.react-flow__edge { cursor: default; }
+.react-flow__edge.selectable { cursor: pointer; }
+
+.e-lease__halo {
+  fill: none;
+  stroke: var(--ground);
+  stroke-width: 11;
+  stroke-opacity: 0.8;
+  stroke-linecap: round;
+}
+.e-lease__line {
+  fill: none;
+  stroke: var(--hue);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 0;
+  transition: stroke 0.4s var(--ease), stroke-width 0.3s var(--ease);
+}
+/* Draw down from the session into the device (also how a #1 queue line "solidifies" into a lease). */
+.e-lease--enter .e-lease__line { animation: lease-draw 0.7s var(--ease) both; }
+@keyframes lease-draw {
+  from { stroke-dashoffset: 1; stroke-opacity: 0.5; }
+  to { stroke-dashoffset: 0; stroke-opacity: 1; }
+}
+.e-lease--enter .e-lease__halo { animation: lease-fade 0.7s var(--ease) both; }
+@keyframes lease-fade { from { stroke-opacity: 0; } to { stroke-opacity: 0.8; } }
+/* Released: the line retracts upward into the session. */
+.e-lease--retract .e-lease__line { animation: lease-retract 0.65s var(--ease) forwards; }
+@keyframes lease-retract {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 1; } /* positive offset eats the line from the device end back up to the session */
+}
+.e-lease__particle {
+  fill: var(--text);
+  stroke: var(--hue);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.e-queue__line {
+  fill: none;
+  stroke: var(--hue);
+  stroke-opacity: 0.5;
+  stroke-width: 3;
+  stroke-dasharray: 9 8;
+  stroke-linecap: round;
+  transition: stroke-opacity 0.45s var(--ease);
+  animation: queue-in 0.5s var(--ease) both;
+}
+@keyframes queue-in { from { stroke-opacity: 0; } to { stroke-opacity: 0.5; } }
+.e-queue--leave .e-queue__line { animation: queue-out 0.6s var(--ease) forwards; }
+@keyframes queue-out { from { stroke-opacity: 0.5; } to { stroke-opacity: 0; } }
+
+.e-watch__line {
+  fill: none;
+  stroke: var(--text-dim);
+  stroke-opacity: 0.35;
+  stroke-width: 1.5;
+  stroke-dasharray: 1.5 6;
+  stroke-linecap: round;
+  transition: stroke-opacity 0.3s var(--ease), stroke 0.3s var(--ease), stroke-width 0.3s var(--ease);
+}
+.e-watch.is-active .e-watch__line {
+  stroke: var(--text);
+  stroke-opacity: 0.95;
+  stroke-width: 2.5;
+  animation: watch-march 0.9s linear infinite;
+}
+@keyframes watch-march { to { stroke-dashoffset: -15; } }
+.e-watch.is-off .e-watch__line { stroke: var(--off); stroke-opacity: 0.25; }
+
+.e-usb__line {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 2.5;
+}
+.e-usb.is-off .e-usb__line { stroke: var(--off); stroke-dasharray: 4 4; }
+
+/* Labels (HTML, above the SVG). */
+.e-tag,
+.e-badge {
+  position: absolute;
+  z-index: 1000; /* above nodes and the edge SVG layers */
+  pointer-events: none;
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+  line-height: 1;
+  color: var(--text);
+  background: var(--ground-2);
+  border: 1.5px solid var(--hue);
+  transition: opacity 0.4s var(--ease);
+}
+.e-tag { padding: 4px 9px; border-radius: 999px; }
+.e-tag.is-low { border-color: var(--warn); color: var(--warn); }
+.e-badge {
+  min-width: 30px;
+  padding: 4px 6px;
+  text-align: center;
+  border-radius: var(--r-sm);
+  border-style: dashed;
+  font-weight: 600;
+  animation: queue-in-badge 0.5s var(--ease) both;
+}
+.e-badge.is-leaving { opacity: 0; }
+@keyframes queue-in-badge { from { opacity: 0; } to { opacity: 1; } }

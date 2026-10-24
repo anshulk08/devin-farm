@@ -1,0 +1,375 @@
+/* Bubble nodes (FRONTEND §4, §7). Colours come only from tokens.css.
+   Status rings transition; only state changes animate. */
+
+/* React Flow wrapper: our nodes draw their own chrome. */
+.react-flow__node-session,
+.react-flow__node-rig,
+.react-flow__node-device,
+.react-flow__node-camera,
+.react-flow__node-cloud {
+  background: none;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+.react-flow__node-cloud { pointer-events: none !important; }
+.react-flow__node:focus-visible { outline: none; }
+.react-flow__node:focus-visible > * { outline: 2px solid var(--s7); outline-offset: 4px; }
+
+/* ---------- Devin cloud ---------- */
+.cloud {
+  width: 100%;
+  height: 100%;
+  border-radius: 60px;
+  background:
+    radial-gradient(ellipse 70% 90% at 50% 45%, color-mix(in srgb, var(--panel-2) 70%, transparent) 0%, transparent 100%),
+    color-mix(in srgb, var(--panel) 35%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+}
+.cloud__label {
+  position: absolute;
+  left: 28px;
+  top: 14px;
+  font-size: var(--fs-sm);
+  color: var(--text-faint);
+}
+
+/* ---------- Session bubble ---------- */
+.ses {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+.ses__bubble {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--hue) 26%, var(--panel-2)) 0%, var(--panel) 75%);
+  transition: background 0.4s var(--ease);
+}
+.ses__initial {
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--hue);
+  letter-spacing: -0.02em;
+}
+.ses__ring {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 4px solid var(--ring, var(--hue));
+  transition: border-color 0.4s var(--ease), border-width 0.3s var(--ease);
+}
+.ses--running .ses__ring { --ring: var(--hue); }
+.ses--running .ses__ring::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--hue);
+  opacity: 0;
+  animation: ses-pulse 2.4s var(--ease) infinite;
+}
+@keyframes ses-pulse {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(1.28); opacity: 0; }
+}
+.ses--waiting .ses__ring { --ring: var(--warn); border-width: 5px; }
+.ses--finished .ses__ring { --ring: var(--off); border-width: 3px; }
+.ses--finished .ses__initial { color: color-mix(in srgb, var(--hue) 55%, var(--off)); }
+.ses--error .ses__ring { --ring: var(--bad); border-width: 5px; }
+.ses--joining .ses__bubble { background: transparent; }
+.ses--joining .ses__ring { border-style: dashed; border-width: 3px; }
+
+.ses__acu {
+  position: absolute;
+  top: -6px;
+  right: -26px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: var(--fs-sm);
+  line-height: 16px;
+  color: var(--text);
+  background: var(--ground-2);
+  border: 1px solid var(--line-strong);
+  white-space: nowrap;
+}
+.ses__title {
+  margin-top: 10px;
+  max-width: 100%;
+  font-size: var(--fs-md);
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ses__meta {
+  margin-top: 3px;
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.ses--waiting .ses__meta { color: var(--warn); }
+.ses.is-selected .ses__bubble { outline: 2px solid var(--text); outline-offset: 8px; }
+
+/* ---------- Rig container ---------- */
+.rig {
+  position: relative;
+  border-radius: var(--r-lg);
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  border: 1.5px solid var(--line-strong);
+  cursor: pointer;
+  transition: border-color 0.4s var(--ease), background 0.4s var(--ease);
+}
+.rig.is-selected { outline: 2px solid var(--text); outline-offset: 6px; }
+.rig--offline {
+  border-style: dashed;
+  border-color: var(--off);
+  background: color-mix(in srgb, var(--ground-2) 80%, transparent);
+}
+.rig--offline .rig__name,
+.rig--offline .rig__model { color: var(--off); }
+.rig__plate {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 60px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  background: color-mix(in srgb, var(--ground-2) 60%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.rig__name { font-size: var(--fs-lg); font-weight: 600; color: var(--text); }
+.rig__model { font-size: var(--fs-sm); color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; }
+.rig__pills { margin-left: auto; display: flex; gap: 6px; }
+.pill {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  color: var(--text);
+  background: var(--ground-2);
+  border: 1px solid var(--line);
+}
+.pill__k { color: var(--text-dim); }
+.pill--warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+.pill--dim { color: var(--text-dim); border-style: dashed; }
+.pill--off { color: var(--off); border-color: var(--off); }
+
+.rig__beat {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--text-dim);
+  animation: rig-beat 0.9s var(--ease) 1;
+}
+.rig__beat--off { background: var(--off); animation: none; }
+@keyframes rig-beat {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--text) 70%, transparent); background: var(--text); }
+  100% { box-shadow: 0 0 0 8px transparent; background: var(--text-dim); }
+}
+.rig__port {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--ground-2);
+  border: 1.5px solid var(--line-strong);
+}
+.rig--offline .rig__port { border-color: var(--off); }
+
+/* ---------- Device bubble ---------- */
+.dev {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+.dev__bubble {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  flex: none;
+}
+.dev__face {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--ground-2);
+  transition: filter 0.4s var(--ease), opacity 0.4s var(--ease);
+}
+.dev__img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dev__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  transition: border-color 0.45s var(--ease), border-width 0.35s var(--ease), inset 0.35s var(--ease);
+}
+.dev--leased .dev__ring { inset: -4px; border-width: 7px; border-color: var(--hue); }
+.dev--resetting .dev__ring {
+  inset: -3px;
+  border: 3px dashed var(--text-dim);
+  animation: dev-spin 3.2s linear infinite;
+}
+@keyframes dev-spin { to { transform: rotate(360deg); } }
+.dev--offline .dev__ring { border-color: var(--off); border-style: solid; }
+.dev--offline .dev__face { filter: grayscale(1) brightness(0.55); }
+.dev__strike {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 136px;
+  height: 2.5px;
+  margin-left: -68px;
+  background: var(--off);
+  transform: rotate(-35deg);
+  z-index: 1;
+}
+.dev.is-selected .dev__bubble { outline: 2px solid var(--text); outline-offset: 10px; border-radius: 50%; }
+
+/* Scanning while the camera verifies: a soft sweep inside the bubble */
+.dev__scan {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 75%, color-mix(in srgb, var(--text) 30%, transparent) 100%);
+  animation: dev-spin 1.6s linear infinite;
+  pointer-events: none;
+}
+
+/* Verdict flash: one ring that expands and fades. Green = camera pass, red = camera fail, amber = self-reported. */
+.dev__flash {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 6px solid var(--flash);
+  box-shadow: 0 0 24px 4px color-mix(in srgb, var(--flash) 55%, transparent);
+  animation: dev-flash 1.8s var(--ease) forwards;
+  pointer-events: none;
+}
+.dev__flash--pass { --flash: var(--ok); }
+.dev__flash--fail { --flash: var(--bad); }
+.dev__flash--self { --flash: var(--warn); }
+@keyframes dev-flash {
+  0% { transform: scale(0.92); opacity: 0; }
+  12% { transform: scale(1); opacity: 1; }
+  60% { transform: scale(1.08); opacity: 0.9; }
+  100% { transform: scale(1.32); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* No movement; the ring still shows, then the global rule ends it. Keep it visible briefly instead. */
+  .dev__flash { animation: dev-flash-still 1.8s steps(1, end) forwards !important; animation-duration: 1.8s !important; }
+  @keyframes dev-flash-still { 0% { opacity: 1; } 100% { opacity: 0; } }
+}
+
+.dev__verdict {
+  position: absolute;
+  right: -4px;
+  bottom: -2px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  background: var(--ground);
+  border: 2px solid currentColor;
+  z-index: 2;
+}
+.dev__verdict--pass { color: var(--ok); }
+.dev__verdict--fail { color: var(--bad); }
+.dev__verdict--self { color: var(--warn); font-size: var(--fs-sm); font-weight: 600; }
+
+.dev__label {
+  margin-top: 10px;
+  padding: 2px 8px 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.dev__name { font-size: var(--fs-md); font-weight: 500; color: var(--text); }
+.dev__state { font-size: var(--fs-sm); color: var(--text-dim); }
+.dev--leased .dev__state { color: var(--text); }
+.dev--offline .dev__name,
+.dev--offline .dev__state { color: var(--off); }
+
+/* ---------- Camera ---------- */
+.cam {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+.cam__lens {
+  position: relative;
+  z-index: 1;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--panel-2);
+  border: 1.5px solid var(--line-strong);
+  transition: border-color 0.3s var(--ease);
+}
+.cam__body { fill: none; stroke: var(--text-dim); stroke-width: 1.5; stroke-linejoin: round; }
+.cam__glass { fill: var(--ground); stroke: var(--text); stroke-width: 1.5; }
+.cam.is-scanning .cam__lens { border-color: var(--text); }
+.cam--down .cam__lens { border-color: var(--warn); }
+.cam--down .cam__glass { stroke: var(--warn); }
+.cam__label { margin-top: 4px; font-size: var(--fs-sm); color: var(--text-dim); }
+.cam.is-selected .cam__lens { outline: 2px solid var(--text); outline-offset: 4px; }
+.cam__scan {
+  position: absolute;
+  left: 50%;
+  margin-left: -1px;
+  overflow: visible;
+  pointer-events: none;
+}
+.cam__wedge { animation: cam-scan 1.4s ease-in-out infinite; transform-origin: 0 0; }
+@keyframes cam-scan {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* ---------- Drawn board placeholders (mock / replay) ---------- */
+.bp { width: 100%; height: 100%; display: block; }
+.bp-board { fill: var(--panel-2); stroke: var(--line-strong); stroke-width: 1.2; }
+.bp-pin { stroke: var(--line-strong); stroke-width: 1; }
+.bp-chip { fill: var(--line); }
+.bp-rail { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 3; }
+.bp-led { fill: var(--ground); stroke: var(--text-faint); stroke-width: 1.2; }
+.bp-px { fill: var(--text-faint); opacity: 0.6; }
