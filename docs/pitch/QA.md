@@ -37,7 +37,7 @@ Every result carries its uncertainty. For LED timing, the floor is one frame per
 Yes, and we label it that way. `log_contains` is evaluated over the run's logs, always comes back marked self-reported, and the map shows it in amber, never green. Only camera results can be green. (CONTRACTS C6, FRONTEND §7)
 
 **7. How did you measure "claimed vs confirmed"?**
-Two arms, with and without the farm, on the same tickets including trap variants, three reps each. The agent's claim comes from Devin's structured output. A separate grader re-runs each final commit on the rig with hidden assertions the agent never saw, and we report counts with 95 % Wilson intervals. The plan was written down before we ran it. Results: TODO (E1). (`experiments/PLAN.md`)
+Two arms, with and without the farm, on the same tickets including trap variants, three reps each. The agent's claim comes from Devin's structured output. A separate grader re-runs each final commit on the rig with hidden assertions the agent never saw, and we report counts with 95 % Wilson intervals. The plan is written down in `experiments/PLAN.md` before the first run (TODO: confirm the commit predates the first E1 run). Results: TODO (E1). (`experiments/PLAN.md`)
 
 **8. Aren't the trap tickets rigged against the agent?**
 The trap is ordinary wiring: external LEDs active-low or on non-tutorial pins, or Uno Q timing that only the microcontroller can meet. TODO: confirm with A that the board's describe page documents the wiring. An agent that reads the board description and verifies passes; one that assumes the tutorial wiring and trusts its logs fails. That gap is the point. (WORKSPLIT Lane A §8)

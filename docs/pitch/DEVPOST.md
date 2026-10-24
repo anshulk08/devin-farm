@@ -27,7 +27,7 @@ Devin Farm is a hardware lab that cloud Devin sessions can use over a private ne
 
 ## How we built it
 
-- **Network and identity:** Tailscale. Rigs are `tag:rig`, the control plane is `tag:control`, sessions are `tag:devin-session`. The policy file grants sessions `tcp:8080` on rigs only; sessions can't reach each other, the control plane, rig SSH, the rig admin port or the verifier. The control plane mints a one-off, ephemeral, pre-authorized key per session through a Tailscale OAuth client and hands it to the session as a secret. The rig identifies every caller with `tailscale whois`, so there are no API keys to leak. In a Devin VM without a TUN device, `tailscaled` runs in userspace mode with a local HTTP proxy.
+- **Network and identity:** Tailscale. Rigs are `tag:rig`, the control plane is `tag:control`, sessions are `tag:devin-session`. The policy file grants sessions `tcp:8080` on rigs only; sessions can't reach each other, the control plane, rig SSH, the rig admin port or the verifier. The control plane mints a one-off, ephemeral, pre-authorized key per session through a Tailscale OAuth client and hands it to the session as a secret. The rig identifies every caller with `tailscale whois`, so there are no API keys to leak. In a Devin VM without a TUN device, `tailscaled` runs in userspace mode with a local HTTP proxy. TODO: confirm which join mode we actually ran (Day-0 check G1).
 - **Rig daemon (`farm-rigd`):** Python, FastAPI and SQLite. It owns leases, FIFO queues and fencing tokens for its own boards, deploys by SHA (shallow clone, hooks off, path and size checks), and never runs agent code on the Jetson itself. Pico code goes on with `mpremote`; Uno Q apps with `arduino-app-cli`. USB is allowlisted with usbguard so a board can't re-enumerate as a keyboard.
 - **Verifier (`farm-verifier`):** Python, OpenCV and numpy, listening on localhost only. It calibrates regions of interest from each board's idle pattern, then measures LED sequences (per step: which LEDs, how long) and matrix frames (8×13 cells after a homography). Each result has measured, expected, uncertainty and a plain-language detail. It writes a clip with a burned-in overlay.
 - **Control plane (`farm-control`):** TODO (language, decided at T+1). It discovers rigs by tag, merges their event streams into one graph, drives sessions through the Devin API v3 (create with session secrets, a playbook, an ACU cap and a structured-output schema; poll; message; archive), republishes evidence, and serves the map: operator view over `tailscale serve`, public view over Funnel.
@@ -54,7 +54,7 @@ Devin Farm is a hardware lab that cloud Devin sessions can use over a private ne
 
 - TODO (write after E1 and rehearsals). Draft points to confirm or drop:
 - Independent verification changes agent behaviour only if the result is specific. "Step 2: LED 0 still on" gets fixed; "failed" gets retried.
-- Network identity is a cleaner access model for agents than API keys: the policy file is the whole security story, and it's short.
+- Network identity is a cleaner access model for agents than API keys: the policy file holds most of the access story, and it's short.
 - Locks belong with the thing that can reset the hardware, not in a central service.
 
 ## What's next

@@ -31,8 +31,8 @@ From `docs/SUBMISSION.md` §4. Slot: 3–5 min with screen share. Run from the `
 | 0:20 | Map, live. Point at the queue line and the fencing token | "One lock per board. Everyone else waits, in order." |
 | 1:00 | Open the drawer of the board being verified; read the measured result aloud | "This is what the camera measured, with the error bar." |
 | 2:00 | Prompt a session from its drawer: "Show the camera result in your PR." | "We can steer any agent from here." |
-| 2:40 | Hand-over if one happened; else Operator releases from the drawer: reset → idle ✓ → next grant | "Wiped, checked by the camera, then handed on." |
-| 3:20 | The PR with evidence; the E1 chart; close with the live link | Numbers only from `experiments/results/` |
+| 2:40 | Hand-over if one happened; else Operator revokes the lease from the board's drawer (team-only Revoke): reset → idle ✓ → next grant | "Wiped, checked by the camera, then handed on." |
+| 3:20 | The PR with evidence; the E1 chart (skip if E1 isn't done); close with the live link | Numbers only from `experiments/results/` |
 
 ## If something breaks (act within 15 s)
 
