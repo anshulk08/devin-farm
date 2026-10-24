@@ -48,9 +48,11 @@ export function RigDrawer({ node, onSelect }: { node: GNode; onSelect: (id: stri
           <dt>Throttled</dt>
           <dd className={d.throttled ? "v-warn" : ""}>{d.throttled ? "Yes" : "No"}</dd>
           <dt>Camera</dt>
-          <dd className={d.camera_ok === false ? "v-warn" : ""}>{d.camera_ok === false ? "Down" : "Working"}</dd>
+          <dd className={d.camera_ok === false ? "v-warn" : ""}>{offline || d.camera_ok == null ? "—" : d.camera_ok ? "Working" : "Down"}</dd>
           <dt>Verifier</dt>
-          <dd className={d.verifier_online === false ? "v-warn" : ""}>{d.verifier_online === false ? "Not running" : "Running"}</dd>
+          <dd className={d.verifier_online === false ? "v-warn" : ""}>
+            {offline || d.verifier_online == null ? "—" : d.verifier_online ? "Running" : "Not running"}
+          </dd>
         </dl>
       </section>
 
@@ -63,8 +65,8 @@ export function RigDrawer({ node, onSelect }: { node: GNode; onSelect: (id: stri
           <p className="empty">Not enough health samples yet. One arrives every few seconds while the rig is online.</p>
         ) : (
           <>
-            <Sparkline label="Temperature" values={hist.map((h) => h.temp_c)} unit="°C" digits={1} color="var(--s3)" />
-            <Sparkline label="Load (1 min)" values={hist.map((h) => h.load1)} unit="" digits={2} color="var(--s4)" />
+            <Sparkline label="Temperature" values={hist.map((h) => h.temp_c)} unit="°C" digits={1} color="var(--text)" />
+            <Sparkline label="Load (1 min)" values={hist.map((h) => h.load1)} unit="" digits={2} color="var(--text-dim)" />
           </>
         )}
       </section>

@@ -124,6 +124,8 @@ function CommandDialog({ onClose, onSelect, onNewSession }: CommandBarProps) {
   }, [items, q]);
 
   useEffect(() => setActive(0), [q]);
+  // The list can shrink under the cursor when nodes leave the map.
+  useEffect(() => setActive((a) => Math.max(0, Math.min(a, shown.length - 1))), [shown.length]);
   useEffect(() => {
     listRef.current?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: "nearest" });
   }, [active]);
@@ -161,6 +163,7 @@ function CommandDialog({ onClose, onSelect, onNewSession }: CommandBarProps) {
           className="cmd-input"
           data-autofocus
           role="combobox"
+          aria-label="Search nodes and commands"
           aria-expanded="true"
           aria-controls="cmd-list"
           aria-activedescendant={shown[active] ? optId(active) : undefined}

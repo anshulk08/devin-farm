@@ -144,7 +144,7 @@ export function DeviceDrawer({ node, onSelect }: { node: GNode; onSelect: (id: s
               label="Revoke lease"
               question={`Revoke ${holder?.label ?? "the holder"}'s lease on ${device}? Its fencing token stops working immediately and the next session in the queue gets the board.`}
               confirmLabel="Revoke lease"
-              onConfirm={() => api.revokeLease(rigId, leaseIdOf(lease!.id))}
+              onConfirm={() => (lease ? api.revokeLease(rigId, leaseIdOf(lease.id)) : Promise.reject(new Error("The lease has already ended.")))}
               disabledReason={gate.reason ?? (lease ? undefined : "No lease to revoke")}
               doneText="Lease revoked"
             />
@@ -171,7 +171,7 @@ function LiveCrop({ rigId, device, offline }: { rigId: string; device: string; o
     return (
       <div className="crop">
         <p className="crop-empty">
-          No camera in {mode.mode === "live" ? "the past" : `${mode.mode} mode`}.
+          {mode.mode === "live" ? "No live camera while viewing the past." : `No camera in ${mode.mode} mode.`}
           <br />
           The live crop shows here when connected to a rig.
         </p>

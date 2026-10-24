@@ -56,6 +56,11 @@ export function useAsyncAction<A extends unknown[], T>(fn: (...args: A) => Promi
   return { state: st, run, reset };
 }
 
+// Open traps, innermost last. Only the innermost one handles keys and focus, so a dialog opened over
+// another (⌘K over New session) does not fight it for focus.
+const trapStack: HTMLElement[] = [];
+const isTop = (el: HTMLElement) => trapStack[trapStack.length - 1] === el;
+
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
@@ -69,9 +74,11 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean
     const el = ref.current;
     if (!active || !el) return;
     const before = document.activeElement as HTMLElement | null;
+    trapStack.push(el);
     const first = el.querySelector<HTMLElement>("[data-autofocus]") ?? el.querySelector<HTMLElement>(FOCUSABLE);
     first?.focus();
     const onKey = (e: KeyboardEvent) => {
+      if (!isTop(el)) return;
       if (e.key === "Escape") {
         e.stopPropagation();
         e.preventDefault();
@@ -92,7 +99,7 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean
     };
     // Backstop for cases the Tab wrap misses (radio groups, browser chrome): pull focus back inside.
     const onFocusIn = (e: FocusEvent) => {
-      if (e.target instanceof Node && !el.contains(e.target)) {
+      if (isTop(el) && e.target instanceof Node && !el.contains(e.target)) {
         (el.querySelector<HTMLElement>("[data-autofocus]") ?? el.querySelector<HTMLElement>(FOCUSABLE))?.focus();
       }
     };
@@ -101,6 +108,8 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean
     return () => {
       el.removeEventListener("keydown", onKey);
       document.removeEventListener("focusin", onFocusIn);
+      const i = trapStack.lastIndexOf(el);
+      if (i >= 0) trapStack.splice(i, 1);
       before?.focus?.();
     };
   }, [ref, active]);
