@@ -1,0 +1,16 @@
+# /etc/farm/rig.yaml  (override with --config or $FARM_RIG_CONFIG)
+rig_id: rig-1
+verifier_url: http://127.0.0.1:8090
+# team_logins: [alice@example.com]   # optional: restrict team access to these tailnet logins
+unoq_library_allowlist: [Arduino_LED_Matrix, Arduino_RouterBridge, Arduino_Modulino]
+devices:
+  - id: pico-1
+    type: pico
+    path: /dev/farm/pico-1        # udev symlink; device is offline while it is missing
+    optional: true                # not plugged in on rig-1 yet: stays visible as offline (not_present), no errors
+    order: 1                      # bench position, left to right (shown on the map)
+  - id: unoq-1
+    type: unoq
+    path: /dev/farm/unoq-1
+    adb_serial: "460740411"       # needed when several adb devices are attached (null = the only one)
+    order: 2

@@ -1,0 +1,3 @@
+name: Farm Idle
+icon: 💤
+description: Farm idle pattern (C8) - four corner pixels steady plus a centre heartbeat at 0.5 Hz, RGB off.

@@ -1,0 +1,23 @@
+[Unit]
+Description=Farm rig daemon (rigd): C1 session API :8080, C3 control API :8081
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# User=guru until provision.sh creates the farm user (udev/usbguard rules).
+User=guru
+WorkingDirectory=/opt/farm
+Environment=PYTHONUNBUFFERED=1
+Environment=FARM_RIG_CONFIG=/etc/farm/rig.yaml
+Environment=FARM_STATE_DIR=/var/lib/farm
+Environment=PATH=/home/guru/.local/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=-/etc/farm/env
+ExecStart=/opt/farm/venv/bin/python -m rig.rigd --bind ${FARM_BIND} --port 8080 --control-port 8081
+Restart=always
+RestartSec=2
+MemoryMax=1G
+StateDirectory=farm
+
+[Install]
+WantedBy=multi-user.target
