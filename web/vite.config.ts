@@ -11,7 +11,7 @@ export default defineConfig({
     proxy: {
       "/api": process.env.FARM_CONTROL ?? "http://127.0.0.1:8000",
       "/pub": process.env.FARM_CONTROL ?? "http://127.0.0.1:8000",
-      "/e": process.env.FARM_CONTROL ?? "http://127.0.0.1:8000",
+      "^/e/": process.env.FARM_CONTROL ?? "http://127.0.0.1:8000",
     },
   },
   test: { environment: "node", globals: true },

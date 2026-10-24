@@ -2,7 +2,7 @@
   position: absolute;
   top: var(--topbar-h, 60px);
   right: 0;
-  bottom: 0;
+  bottom: var(--timeline-h);
   width: var(--drawer-w);
   z-index: 20;
   display: flex;

@@ -35,7 +35,7 @@ export function App() {
       <main className="canvas">
         <GraphCanvas selectedId={selectedId} onSelect={setSelectedId} />
       </main>
-      <Drawer selectedId={selectedId} onClose={() => setSelectedId(null)} />
+      <Drawer selectedId={selectedId} onClose={() => setSelectedId(null)} onSelect={setSelectedId} />
       <Toasts onSelect={setSelectedId} />
       <Timeline />
       {!PUBLIC && <NewSessionModal open={newOpen} onClose={() => setNewOpen(false)} />}

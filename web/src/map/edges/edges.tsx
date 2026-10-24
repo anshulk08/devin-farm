@@ -55,7 +55,8 @@ export const LeaseEdge = memo(function LeaseEdge({ sourceX, sourceY, targetX, ta
 
   const left = data?.expiresAt != null ? data.expiresAt - now : null;
   const label = [data?.token != null ? `tok ${data.token}` : null, left != null ? clock(left) : null].filter(Boolean).join(" · ");
-  const lp = c.at(0.5);
+  // Pinned just above the device: devices never overlap, so labels of crossing leases can't collide.
+  const lp = { x: targetX, y: targetY - 24 };
   const particles = data?.active && !reduced;
 
   return (

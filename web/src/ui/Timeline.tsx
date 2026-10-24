@@ -55,6 +55,8 @@ const agoWords = (s: number) => {
 
 export function Timeline() {
   const { live, log, logVersion, scrubTs, setScrubTs, mode } = useFarm();
+  // Only a live feed may say "Live" (honesty rule: mocks and replays are always labelled).
+  const headWord = mode.mode === "live" ? "Live" : "Latest";
   const pb = useSyncExternalStore(playback.subscribe, playback.getSnapshot, playback.getSnapshot);
   const trackRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -184,7 +186,7 @@ export function Timeline() {
         aria-valuemin={Math.floor(start)}
         aria-valuemax={Math.ceil(end)}
         aria-valuenow={Math.round(value)}
-        aria-valuetext={scrubbing ? `${agoWords(end - value)}, ${wallClock(value)}` : `Live, ${hasData ? wallClock(end) : "waiting for events"}`}
+        aria-valuetext={scrubbing ? `${agoWords(end - value)}, ${wallClock(value)}` : `${headWord}, ${hasData ? wallClock(end) : "waiting for events"}`}
         aria-disabled={!hasData || undefined}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -224,7 +226,7 @@ export function Timeline() {
           </>
         ) : (
           <>
-            <span className="tl-live">Live</span>
+            <span className="tl-live">{headWord}</span>
             <span className="mono tl-dim">{wallClock(end)}</span>
           </>
         )}
@@ -232,7 +234,7 @@ export function Timeline() {
 
       {scrubbing && (
         <button type="button" className="tl-btn tl-back" onClick={() => setScrubTs(null)}>
-          Back to live
+          {mode.mode === "live" ? "Back to live" : "Back to latest"}
         </button>
       )}
     </footer>
