@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-labelledby="t d">
+  <title id="t">Devin Farm architecture: the tailnet trust boundary</title>
+  <desc id="d">Devin cloud spawns session VMs that join a Tailscale tailnet as tag:devin-session. The ACL lets sessions reach only port 8080 on a rig. rig-1 runs farm-rigd on 8080 and 8081, farm-verifier on 127.0.0.1:8090, two boards and a camera. farm-control (tag:control) polls rigs, calls the Devin API v3, and publishes a read-only map and evidence pages over Funnel. Team laptops (group:team) reach rigs and control.</desc>
+  <defs>
+    <style>
+      .ui { font-family: "Inter Tight", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+      .mono { font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+      .t1 { font-size: 30px; font-weight: 600; fill: #d6dee8; }
+      .sub { font-size: 16px; fill: #8b97a7; }
+      .h { font-size: 19px; font-weight: 600; fill: #d6dee8; }
+      .h2 { font-size: 17px; font-weight: 600; fill: #d6dee8; }
+      .b { font-size: 14px; fill: #d6dee8; }
+      .dim { font-size: 14px; fill: #8b97a7; }
+      .m { font-size: 13px; fill: #8b97a7; }
+      .mb { font-size: 13px; fill: #d6dee8; }
+      .lbl { font-size: 13px; fill: #8b97a7; }
+      .x { font-size: 15px; font-weight: 700; fill: #8b97a7; }
+      .region { fill: #0f141b; stroke: #243040; stroke-width: 1.5; }
+      .box { fill: #121821; stroke: #34445a; stroke-width: 1.5; }
+      .box2 { fill: #18202b; stroke: #34445a; stroke-width: 1.5; }
+      .chip { fill: #0b0f14; stroke: #34445a; stroke-width: 1.2; }
+      .ok-flow { fill: none; stroke: #d6dee8; stroke-width: 2; }
+      .blocked { fill: none; stroke: #5a6573; stroke-width: 2; stroke-dasharray: 6 6; }
+      .dotted { fill: none; stroke: #8b97a7; stroke-width: 1.5; stroke-dasharray: 2 5; stroke-linecap: round; }
+      .wire { fill: none; stroke: #5d6a7a; stroke-width: 1.5; }
+    </style>
+    <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#d6dee8"/>
+    </marker>
+    <marker id="arw0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b48cff"/>
+    </marker>
+    <marker id="arw1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ff6fcf"/>
+    </marker>
+    <marker id="arw2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ff9a4d"/>
+    </marker>
+    <marker id="arwd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8b97a7"/>
+    </marker>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#1a2330"/>
+    </pattern>
+  </defs>
+
+  <!-- ground -->
+  <rect x="0" y="0" width="1600" height="900" fill="#0b0f14"/>
+  <rect x="0" y="0" width="1600" height="900" fill="url(#dots)"/>
+
+  <!-- title -->
+  <text class="ui t1" x="48" y="62">Devin Farm: the tailnet trust boundary</text>
+  <text class="ui sub" x="48" y="94">Cloud sessions reach one port on a rig. The camera, the verifier and the admin API stay out of their reach.</text>
+
+  <!-- ================= Devin cloud ================= -->
+  <rect class="region" x="40" y="130" width="360" height="630" rx="18"/>
+  <text class="ui h" x="64" y="166">Devin cloud</text>
+  <text class="ui dim" x="64" y="190">One VM per session</text>
+
+  <!-- session A -->
+  <rect class="box" x="64" y="210" width="300" height="96" rx="10"/>
+  <circle cx="90" cy="238" r="9" fill="#b48cff"/>
+  <text class="ui h2" x="108" y="244">Session A</text>
+  <text class="mono mb" x="84" y="270">pico/led-sequence-trap</text>
+  <text class="mono m" x="84" y="292">devin-s-1a2b3c4d</text>
+
+  <!-- session B -->
+  <rect class="box" x="64" y="326" width="300" height="96" rx="10"/>
+  <circle cx="90" cy="354" r="9" fill="#ff6fcf"/>
+  <text class="ui h2" x="108" y="360">Session B</text>
+  <text class="mono mb" x="84" y="386">unoq/matrix-heart</text>
+  <text class="mono m" x="84" y="408">devin-s-5e6f7a8b</text>
+
+  <!-- session C -->
+  <rect class="box" x="64" y="442" width="300" height="96" rx="10"/>
+  <circle cx="90" cy="470" r="9" fill="#ff9a4d"/>
+  <text class="ui h2" x="108" y="476">Session C</text>
+  <text class="mono mb" x="84" y="502">pico/led-sequence</text>
+  <text class="mono m" x="84" y="524">devin-s-9c0d1e2f</text>
+
+  <!-- spawn -->
+  <path class="dotted" d="M214,640 V546" marker-end="url(#arwd)"/>
+  <text class="ui lbl" x="226" y="598">spawns</text>
+
+  <!-- orchestrator -->
+  <rect class="box2" x="64" y="640" width="300" height="96" rx="10"/>
+  <text class="ui h2" x="84" y="670">Devin orchestrator</text>
+  <text class="ui dim" x="84" y="694">Creates, polls, messages and</text>
+  <text class="ui dim" x="84" y="714">archives sessions</text>
+
+  <!-- ================= Tailnet boundary ================= -->
+  <rect x="440" y="130" width="1120" height="630" rx="22" fill="none" stroke="#c9b8ff" stroke-width="2" stroke-dasharray="10 8" opacity="0.85"/>
+  <text class="ui h" x="464" y="166">Tailnet</text>
+  <text class="ui dim" x="540" y="166">WireGuard, ACL-enforced (contract C0)</text>
+  <text class="ui dim" x="464" y="190">Each session joins as an ephemeral node: <tspan class="mono">tag:devin-session</tspan>, one-off key, 1 h expiry</text>
+
+  <!-- ================= rig-1 ================= -->
+  <rect class="region" x="640" y="210" width="580" height="400" rx="18"/>
+  <text class="ui h" x="664" y="244">rig-1</text>
+  <text class="mono m" x="722" y="244">Jetson · tag:rig</text>
+  <rect class="chip" x="1012" y="224" width="184" height="28" rx="6"/>
+  <text class="mono m" x="1026" y="243">:22 SSH · team only</text>
+
+  <!-- farm-rigd -->
+  <rect class="box" x="664" y="264" width="270" height="176" rx="10"/>
+  <text class="ui h2" x="684" y="292">farm-rigd</text>
+  <rect class="chip" x="680" y="306" width="200" height="30" rx="6"/>
+  <text class="mono mb" x="694" y="326">:8080 session API</text>
+  <rect class="chip" x="680" y="346" width="200" height="30" rx="6"/>
+  <text class="mono mb" x="694" y="366">:8081 control, events</text>
+  <text class="ui dim" x="684" y="402">Leases, FIFO queue, fencing</text>
+  <text class="ui dim" x="684" y="424">Deploy by git SHA, reset to idle</text>
+
+  <!-- farm-verifier -->
+  <rect class="box" x="970" y="264" width="226" height="176" rx="10"/>
+  <text class="ui h2" x="990" y="292">farm-verifier</text>
+  <rect class="chip" x="986" y="306" width="166" height="30" rx="6"/>
+  <text class="mono mb" x="1000" y="326">127.0.0.1:8090</text>
+  <text class="ui dim" x="990" y="362">Local only, not on</text>
+  <text class="ui dim" x="990" y="382">the tailnet</text>
+  <text class="ui dim" x="990" y="404">Measures, records clips,</text>
+  <text class="ui dim" x="990" y="424">confirms idle</text>
+
+  <!-- rigd <-> verifier -->
+  <path class="ok-flow" d="M936,321 H968" marker-start="url(#arw)" marker-end="url(#arw)"/>
+
+  <!-- devices -->
+  <rect class="box2" x="664" y="474" width="130" height="100" rx="50"/>
+  <text class="ui h2" x="729" y="514" text-anchor="middle">pico-1</text>
+  <text class="ui dim" x="729" y="538" text-anchor="middle">LED bank</text>
+
+  <rect class="box2" x="812" y="474" width="130" height="100" rx="50"/>
+  <text class="ui h2" x="877" y="514" text-anchor="middle">unoq-1</text>
+  <text class="ui dim" x="877" y="538" text-anchor="middle">8×13 matrix</text>
+
+  <rect class="box2" x="1060" y="474" width="136" height="100" rx="50"/>
+  <text class="ui h2" x="1128" y="514" text-anchor="middle">cam0</text>
+  <text class="ui dim" x="1128" y="538" text-anchor="middle">Cropped ROI</text>
+
+  <!-- attached (USB) -->
+  <path class="wire" d="M729,440 V474"/>
+  <path class="wire" d="M877,440 V474"/>
+  <text class="ui lbl" x="738" y="462">USB</text>
+  <text class="ui lbl" x="886" y="462">USB</text>
+  <!-- camera to verifier -->
+  <path class="wire" d="M1128,474 V442" marker-end="url(#arwd)"/>
+  <text class="ui lbl" x="1138" y="462">frames</text>
+  <!-- watches -->
+  <path class="dotted" d="M1060,524 H944"/>
+  <path class="dotted" d="M1072,556 C1010,600 820,604 760,570"/>
+  <text class="ui lbl" x="1002" y="514" text-anchor="middle">watches</text>
+
+  <!-- ================= rig-2 (optional) ================= -->
+  <rect x="1250" y="210" width="280" height="170" rx="18" fill="#0f141b" stroke="#34445a" stroke-width="1.5" stroke-dasharray="8 6"/>
+  <text class="ui h" x="1274" y="244">rig-2</text>
+  <text class="ui dim" x="1332" y="244">optional</text>
+  <text class="mono m" x="1274" y="270">tag:rig · same services</text>
+  <text class="ui dim" x="1274" y="300">pico-2, unoq-2</text>
+  <text class="ui dim" x="1274" y="322">Found by tag every 10 s</text>
+  <text class="ui dim" x="1274" y="344">Mock drivers on a laptop</text>
+  <text class="ui dim" x="1274" y="364">prove multi-rig</text>
+
+  <!-- ================= team laptops ================= -->
+  <rect class="box" x="1250" y="410" width="280" height="124" rx="10"/>
+  <text class="ui h2" x="1270" y="440">Team laptops</text>
+  <text class="mono m" x="1270" y="464">group:team</text>
+  <text class="ui dim" x="1270" y="490">Any port on rigs and control</text>
+  <text class="ui dim" x="1270" y="512">Operator UI, SSH, admin</text>
+
+  <!-- ================= farm-control ================= -->
+  <rect class="box" x="640" y="646" width="560" height="96" rx="10"/>
+  <text class="ui h2" x="660" y="674">farm-control</text>
+  <text class="mono m" x="772" y="674">tag:control</text>
+  <text class="ui dim" x="660" y="700">Aggregates rigs into one graph, mints session join keys</text>
+  <text class="ui dim" x="660" y="724">Republishes evidence, serves the operator UI (tailscale serve)</text>
+
+  <!-- ================= flows ================= -->
+  <!-- sessions -> rig :8080 (allowed) -->
+  <path d="M366,258 C500,262 560,318 678,320" fill="none" stroke="#b48cff" stroke-width="2.5" marker-end="url(#arw0)"/>
+  <path d="M366,374 C480,372 560,326 678,322" fill="none" stroke="#ff6fcf" stroke-width="2.5" marker-end="url(#arw1)"/>
+  <path d="M366,478 C470,474 540,340 678,324" fill="none" stroke="#ff9a4d" stroke-width="2.5" marker-end="url(#arw2)"/>
+  <text class="ui b" x="476" y="236">lease, run, verify</text>
+  <text class="mono m" x="476" y="256">tcp:8080 only</text>
+
+  <!-- blocked from sessions -->
+  <path class="blocked" d="M366,516 C410,520 430,560 452,574"/>
+  <text class="ui b" x="456" y="560">Blocked for sessions</text>
+  <text class="x ui" x="458" y="590">✗</text><text class="mono mb" x="478" y="590">:8081 admin</text>
+  <text class="x ui" x="458" y="612">✗</text><text class="mono mb" x="478" y="612">:22 SSH</text>
+  <text class="x ui" x="458" y="634">✗</text><text class="mono mb" x="478" y="634">:8090 verifier</text>
+  <text class="x ui" x="458" y="656">✗</text><text class="ui b" x="478" y="656">other sessions</text>
+  <text class="x ui" x="458" y="678">✗</text><text class="ui b" x="478" y="678">farm-control</text>
+
+  <!-- control -> rig-1 :8080/:8081 -->
+  <path class="ok-flow" d="M640,664 H616 V361 H678" marker-end="url(#arw)"/>
+  <text class="ui lbl" x="608" y="456" text-anchor="end" transform="rotate(-90 608 456)">poll, events</text>
+
+  <!-- control -> rig-2 -->
+  <path class="ok-flow" d="M1200,664 H1235 V300 H1248" marker-end="url(#arw)"/>
+
+  <!-- team -> control -->
+  <path class="ok-flow" d="M1390,534 V706 H1202" marker-end="url(#arw)"/>
+
+  <!-- control -> Devin API -->
+  <path class="ok-flow" d="M640,712 H366" marker-end="url(#arw)"/>
+  <text class="ui lbl" x="542" y="734" text-anchor="middle">Devin API v3, HTTPS out</text>
+
+  <!-- Funnel -->
+  <path class="ok-flow" d="M920,742 V788" marker-end="url(#arw)"/>
+  <text class="ui lbl" x="934" y="782">Funnel :443, read-only</text>
+
+  <!-- ================= public ================= -->
+  <rect class="box2" x="640" y="790" width="560" height="84" rx="10"/>
+  <text class="ui h2" x="660" y="818">Judges and PR reviewers</text>
+  <text class="ui dim" x="660" y="842">Public map and evidence pages <tspan class="mono">/e/&lt;id&gt;</tspan></text>
+  <text class="ui dim" x="660" y="862">No transcripts, no prompting, no room camera</text>
+
+  <!-- ================= legend ================= -->
+  <text class="ui b" x="48" y="806">Key</text>
+  <path d="M48,830 H96" fill="none" stroke="#b48cff" stroke-width="2.5"/>
+  <text class="ui lbl" x="106" y="835">Session traffic (allowed)</text>
+  <path class="ok-flow" d="M48,858 H96"/>
+  <text class="ui lbl" x="106" y="863">Control and team traffic</text>
+  <path class="blocked" d="M310,830 H358"/>
+  <text class="ui lbl" x="368" y="835">Blocked by the ACL</text>
+  <path class="dotted" d="M310,858 H358"/>
+  <text class="ui lbl" x="368" y="863">Spawns, camera watches</text>
+
+  <text class="ui lbl" x="1250" y="818">Sessions never get a shell on the rig.</text>
+  <text class="ui lbl" x="1250" y="840">Agent code runs only on the target board.</text>
+  <text class="ui lbl" x="1250" y="862">Evidence ids are 128-bit random.</text>
+</svg>
