@@ -1,0 +1,114 @@
+/* Bottom timeline scrubber (FRONTEND §5). 48 px, sits in the app grid's last row. */
+.timeline {
+  grid-row: 3;
+  position: relative;
+  z-index: 4;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 max(24px, 2.5vw);
+  background: var(--ground-2);
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+  user-select: none;
+}
+.timeline[data-scrubbing] { border-top-color: var(--warn); }
+
+/* ---- player controls (mock / replay) ---- */
+.tl-player { display: flex; align-items: center; gap: 10px; flex: none; }
+.tl-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 28px; padding: 0 11px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-sm);
+  color: var(--text); font-size: var(--fs-sm); cursor: pointer;
+}
+.tl-btn:hover { border-color: var(--line-strong); background: var(--panel-2); }
+.tl-play { min-width: 92px; }
+.tl-speed { display: inline-flex; align-items: center; gap: 6px; }
+.tl-speed-label { color: var(--text-dim); }
+.tl-speed select {
+  height: 28px; padding: 0 6px;
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+}
+
+/* ---- track ---- */
+.tl-edge { flex: none; min-width: 3.6em; font-size: var(--fs-sm); color: var(--text-faint); text-align: center; }
+.tl-track {
+  position: relative;
+  flex: 1;
+  min-width: 120px;
+  height: 32px;
+  cursor: pointer;
+  touch-action: none;
+  border-radius: var(--r-sm);
+}
+.tl-track[aria-disabled] { cursor: default; }
+.tl-track:focus-visible { outline-offset: 0; }
+.tl-rail, .tl-past {
+  position: absolute; left: 0; top: 50%;
+  height: 2px; margin-top: -1px;
+  border-radius: 1px;
+}
+.tl-rail { right: 0; background: var(--line); }
+.tl-past { background: var(--line-strong); }
+
+.tl-tick {
+  position: absolute; top: 50%;
+  width: 2px; height: 10px; margin: -5px 0 0 -1px;
+  border-radius: 1px;
+  background: var(--text-faint);
+  pointer-events: none;
+}
+.tl-lease { background: var(--text-dim); height: 14px; margin-top: -7px; }
+.tl-major { width: 3px; height: 22px; margin: -11px 0 0 -1.5px; }
+.tl-pass { background: var(--ok); }
+.tl-fail { background: var(--bad); }
+.tl-self, .tl-warn { background: var(--warn); }
+
+.tl-handle {
+  position: absolute; top: 50%;
+  width: 14px; height: 14px; margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: var(--text);
+  box-shadow: 0 0 0 3px var(--ground-2), 0 0 0 4px var(--line-strong);
+  pointer-events: none;
+  transition: left 0.12s var(--ease);
+}
+.tl-handle.is-dragging { transition: none; }
+.timeline[data-scrubbing] .tl-handle { background: var(--warn); }
+
+.tl-hover {
+  position: absolute; top: 4px; bottom: 4px;
+  width: 1px; margin-left: -0.5px;
+  background: var(--text-faint);
+  pointer-events: none;
+}
+.tl-hover-label {
+  position: absolute; bottom: calc(100% + 10px); left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 7px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm);
+  color: var(--text); font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+
+/* ---- readout ---- */
+.tl-readout { flex: none; display: flex; align-items: baseline; gap: 8px; min-width: 9.5em; justify-content: flex-end; }
+.tl-rel { color: var(--warn); font-size: var(--fs-md); }
+.tl-live { color: var(--text); font-weight: 600; }
+.tl-dim { color: var(--text-dim); }
+.tl-back { flex: none; border-color: var(--warn); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-handle { transition: none; }
+}
+
+@media (max-width: 700px) {
+  .tl-edge, .tl-speed-label { display: none; }
+  .tl-play span { display: none; }
+  .tl-play { min-width: 0; }
+}

@@ -1,0 +1,179 @@
+{"name":"graph_snapshot","data":{"nodes":[{"id":"rig:rig-1","kind":"rig","label":"rig-1","status":"online","data":{"model":"Jetson Orin Nano","temp_c":47.8,"load1":0.41,"mem_free_mb":2310,"throttled":false,"camera_ok":true,"verifier_online":true,"maintenance":false}},{"id":"device:rig-1/pico-1","kind":"device","parent":"rig:rig-1","label":"pico-1","status":"free","data":{"type":"pico","order":0,"queue_depth":0,"outputs":["pico.leds"]}},{"id":"device:rig-1/unoq-1","kind":"device","parent":"rig:rig-1","label":"unoq-1","status":"free","data":{"type":"unoq","order":1,"queue_depth":0,"outputs":["unoq.matrix","unoq.rgb1"]}},{"id":"device:rig-1/pico-3","kind":"device","parent":"rig:rig-1","label":"pico-3","status":"free","data":{"type":"pico","order":2,"queue_depth":0,"outputs":["pico.leds"]}},{"id":"camera:rig-1","kind":"camera","parent":"rig:rig-1","label":"cam0","status":"ok","data":{"fps":30}},{"id":"rig:rig-2","kind":"rig","label":"rig-2","status":"online","data":{"model":"mock","mock":true,"temp_c":41,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"maintenance":false}},{"id":"device:rig-2/pico-2","kind":"device","parent":"rig:rig-2","label":"pico-2","status":"free","data":{"type":"pico","order":0,"queue_depth":0,"outputs":["pico.leds"]}},{"id":"device:rig-2/unoq-2","kind":"device","parent":"rig:rig-2","label":"unoq-2","status":"offline","data":{"type":"unoq","order":1,"queue_depth":0,"reason":"idle not confirmed"}},{"id":"camera:rig-2","kind":"camera","parent":"rig:rig-2","label":"cam0","status":"ok","data":{"fps":30}}],"edges":[{"id":"attached:rig-1/pico-1","kind":"attached","source":"rig:rig-1","target":"device:rig-1/pico-1"},{"id":"attached:rig-1/unoq-1","kind":"attached","source":"rig:rig-1","target":"device:rig-1/unoq-1"},{"id":"attached:rig-1/pico-3","kind":"attached","source":"rig:rig-1","target":"device:rig-1/pico-3"},{"id":"attached:rig-2/pico-2","kind":"attached","source":"rig:rig-2","target":"device:rig-2/pico-2"},{"id":"attached:rig-2/unoq-2","kind":"attached","source":"rig:rig-2","target":"device:rig-2/unoq-2"},{"id":"watches:rig-1/pico-1","kind":"watches","source":"camera:rig-1","target":"device:rig-1/pico-1"},{"id":"watches:rig-1/unoq-1","kind":"watches","source":"camera:rig-1","target":"device:rig-1/unoq-1"},{"id":"watches:rig-1/pico-3","kind":"watches","source":"camera:rig-1","target":"device:rig-1/pico-3"},{"id":"watches:rig-2/pico-2","kind":"watches","source":"camera:rig-2","target":"device:rig-2/pico-2"}],"ts":1761300000}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":47.8,"load1":0.6,"mem_free_mb":2290,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300000}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":41,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300000.5}}
+{"name":"session","data":{"farm_id":"s-1a2b3c4d","devin_session_id":"devin-demo-a","status":"joining","acus":0.1,"title":"pico/led-sequence-trap","url":"https://app.devin.ai/sessions/demo-a","ts":1761300002}}
+{"name":"session_message","data":{"farm_id":"s-1a2b3c4d","source":"user","text":"Ticket pico/led-sequence-trap: LEDs 0 and 2 for 500 ms, then only LED 1 for 500 ms, three times.","ts":1761300002.5}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":48.2,"load1":0.53,"mem_free_mb":2290,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300005}}
+{"name":"session","data":{"farm_id":"s-1a2b3c4d","devin_session_id":"devin-demo-a","node_name":"devin-s-1a2b3c4d","status":"running","acus":0.2,"title":"pico/led-sequence-trap","url":"https://app.devin.ai/sessions/demo-a","ts":1761300005}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":41.2,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300005.5}}
+{"name":"lease","data":{"rig_id":"rig-1","device":"pico-1","lease_id":"L-a1","holder":"devin-s-1a2b3c4d","event":"granted","token":17,"expires_at":1761300306,"ts":1761300006}}
+{"name":"device","data":{"rig_id":"rig-1","device":"pico-1","status":"leased","holder":"devin-s-1a2b3c4d","queue_depth":0,"ts":1761300006}}
+{"name":"session_message","data":{"farm_id":"s-1a2b3c4d","source":"devin","text":"Leased rig-1/pico-1 (token 17). Flashing my first build.","ts":1761300007}}
+{"name":"session","data":{"farm_id":"s-5e6f7a8b","devin_session_id":"devin-demo-b","status":"joining","acus":0.1,"title":"unoq/matrix-heart","url":"https://app.devin.ai/sessions/demo-b","ts":1761300008}}
+{"name":"session_message","data":{"farm_id":"s-5e6f7a8b","source":"user","text":"Ticket unoq/matrix-heart: show a heart on the Uno Q matrix and hold it.","ts":1761300008.5}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":52.9,"load1":2.04,"mem_free_mb":1640,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300010}}
+{"name":"run","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a1","state":"fetching","ts":1761300010}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a1","text":"git fetch origin fix/led-steps","ts":1761300010.3}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":41.4,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300010.5}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a1","text":"HEAD is now at 3f9c2e1 add LED step table","ts":1761300010.7}}
+{"name":"session","data":{"farm_id":"s-5e6f7a8b","devin_session_id":"devin-demo-b","node_name":"devin-s-5e6f7a8b","status":"running","acus":0.2,"title":"unoq/matrix-heart","url":"https://app.devin.ai/sessions/demo-b","ts":1761300011}}
+{"name":"lease","data":{"rig_id":"rig-1","device":"unoq-1","lease_id":"L-b1","holder":"devin-s-5e6f7a8b","event":"granted","token":4,"expires_at":1761300312,"ts":1761300012}}
+{"name":"device","data":{"rig_id":"rig-1","device":"unoq-1","status":"leased","holder":"devin-s-5e6f7a8b","queue_depth":0,"ts":1761300012}}
+{"name":"run","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a1","state":"building","ts":1761300013}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a1","text":"cmake --build build -j4","ts":1761300013.2}}
+{"name":"session","data":{"farm_id":"s-9c0d1e2f","devin_session_id":"devin-demo-c","status":"joining","acus":0.1,"title":"pico/led-sequence","url":"https://app.devin.ai/sessions/demo-c","ts":1761300014}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a1","text":"[ 42%] Building C object main.c.obj","ts":1761300014.3}}
+{"name":"session_message","data":{"farm_id":"s-9c0d1e2f","source":"user","text":"Ticket pico/led-sequence: same LED sequence, clean implementation.","ts":1761300014.5}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":54.3,"load1":1.95,"mem_free_mb":1640,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300015}}
+{"name":"session","data":{"farm_id":"s-1a2b3c4d","devin_session_id":"devin-demo-a","node_name":"devin-s-1a2b3c4d","status":"running","acus":0.5,"title":"pico/led-sequence-trap","url":"https://app.devin.ai/sessions/demo-a","ts":1761300015}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a1","text":"[100%] Linking led_seq.elf","ts":1761300015.4}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":41.4,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300015.5}}
+{"name":"run","data":{"rig_id":"rig-1","device":"unoq-1","run_id":"r-b1","state":"fetching","ts":1761300016}}
+{"name":"log","data":{"rig_id":"rig-1","device":"unoq-1","run_id":"r-b1","text":"git fetch origin matrix-heart","ts":1761300016.3}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a1","text":"picotool load led_seq.uf2 -f","ts":1761300016.5}}
+{"name":"log","data":{"rig_id":"rig-1","device":"unoq-1","run_id":"r-b1","text":"HEAD is now at 61be0aa heart frame","ts":1761300016.7}}
+{"name":"session","data":{"farm_id":"s-9c0d1e2f","devin_session_id":"devin-demo-c","node_name":"devin-s-9c0d1e2f","status":"running","acus":0.2,"title":"pico/led-sequence","url":"https://app.devin.ai/sessions/demo-c","ts":1761300017}}
+{"name":"run","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a1","state":"running","ts":1761300018}}
+{"name":"lease","data":{"rig_id":"rig-1","device":"pico-1","lease_id":"L-c1","holder":"devin-s-9c0d1e2f","event":"queued","position":1,"ts":1761300018}}
+{"name":"device","data":{"rig_id":"rig-1","device":"pico-1","status":"leased","holder":"devin-s-1a2b3c4d","queue_depth":1,"ts":1761300018}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a1","text":"boot: led_seq v0.1","ts":1761300018.4}}
+{"name":"run","data":{"rig_id":"rig-1","device":"unoq-1","run_id":"r-b1","state":"building","ts":1761300019}}
+{"name":"session_message","data":{"farm_id":"s-9c0d1e2f","source":"devin","text":"pico-1 is busy. I'm #1 in the queue and will start when it is handed over.","ts":1761300019}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a1","text":"step 1: on=[0,2]","ts":1761300019.2}}
+{"name":"log","data":{"rig_id":"rig-1","device":"unoq-1","run_id":"r-b1","text":"arduino-cli compile --fqbn arduino:zephyr:unoq","ts":1761300019.3}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":49.5,"load1":2,"mem_free_mb":1640,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300020}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a1","text":"step 2: on=[1]","ts":1761300020}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":41.3,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300020.5}}
+{"name":"log","data":{"rig_id":"rig-1","device":"unoq-1","run_id":"r-b1","text":"Sketch uses 48212 bytes (4%)","ts":1761300020.7}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a1","text":"step 1: on=[0,2]","ts":1761300020.8}}
+{"name":"session","data":{"farm_id":"s-5e6f7a8b","devin_session_id":"devin-demo-b","node_name":"devin-s-5e6f7a8b","status":"running","acus":0.5,"title":"unoq/matrix-heart","url":"https://app.devin.ai/sessions/demo-b","ts":1761300021}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a1","text":"step 2: on=[1]","ts":1761300021.6}}
+{"name":"verify","data":{"rig_id":"rig-1","device":"pico-1","verify_id":"v-a1","state":"pending","ts":1761300022}}
+{"name":"log","data":{"rig_id":"rig-1","device":"unoq-1","run_id":"r-b1","text":"arduino-cli upload -p /dev/ttyACM1","ts":1761300022.1}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":50.5,"load1":2.14,"mem_free_mb":1640,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300025}}
+{"name":"session","data":{"farm_id":"s-1a2b3c4d","devin_session_id":"devin-demo-a","node_name":"devin-s-1a2b3c4d","status":"running","acus":0.8,"title":"pico/led-sequence-trap","url":"https://app.devin.ai/sessions/demo-a","ts":1761300025}}
+{"name":"run","data":{"rig_id":"rig-1","device":"unoq-1","run_id":"r-b1","state":"running","ts":1761300025}}
+{"name":"log","data":{"rig_id":"rig-1","device":"unoq-1","run_id":"r-b1","text":"matrix: frame heart","ts":1761300025.4}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":41.1,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300025.5}}
+{"name":"log","data":{"rig_id":"rig-1","device":"unoq-1","run_id":"r-b1","text":"READY","ts":1761300025.8}}
+{"name":"verify","data":{"rig_id":"rig-1","device":"pico-1","verify_id":"v-a1","state":"done","results":[{"type":"led_sequence","target":"pico.leds","passed":false,"measured":{"steps":[{"on":[0,2],"ms":498},{"on":[0,1],"ms":503}]},"expected":{"steps":[{"on":[0,2],"ms":500},{"on":[1],"ms":500}],"repeat":3,"tol_ms":80},"uncertainty":{"ms":33},"detail":"step 2: LED 0 still on (expected only LED 1)","self_reported":false}],"ts":1761300026}}
+{"name":"evidence","data":{"rig_id":"rig-1","device":"pico-1","evidence_id":"ev-a1-7c41e0","passed":false,"ts":1761300026.6}}
+{"name":"session_message","data":{"farm_id":"s-1a2b3c4d","source":"devin","text":"The camera saw LED 0 still on during step 2. I set LED 1 high but never cleared LED 0. Fixing the step transition.","ts":1761300028}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":51.8,"load1":2.24,"mem_free_mb":1640,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300030}}
+{"name":"verify","data":{"rig_id":"rig-1","device":"unoq-1","verify_id":"v-b1","state":"pending","ts":1761300030}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":40.9,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300030.5}}
+{"name":"session_message","data":{"farm_id":"s-1a2b3c4d","source":"user","text":"Good catch. Write the whole bank on every step instead of toggling single pins.","ts":1761300031}}
+{"name":"session_message","data":{"farm_id":"s-1a2b3c4d","source":"devin","text":"Done: each step now writes the full LED mask. Re-flashing and asking the camera again.","ts":1761300034}}
+{"name":"verify","data":{"rig_id":"rig-1","device":"unoq-1","verify_id":"v-b1","state":"done","results":[{"type":"matrix_frame","target":"unoq.matrix","passed":true,"measured":{"ascii":[".............","...##...##...","..####.####..","..#########..","...#######...","....#####....",".....###.....","......#......"],"mismatched_cells":1,"held_s":2.4},"expected":{"ascii":[".............","...##...##...","..####.####..","..#########..","...#######...","....#####....",".....###.....","......#......"],"tol_cells":2,"hold_s":2},"uncertainty":{"cells":1,"s":0.033},"detail":"1 cell off (tolerance 2), held 2.4 s","self_reported":false}],"ts":1761300034}}
+{"name":"evidence","data":{"rig_id":"rig-1","device":"unoq-1","evidence_id":"ev-b1-4af210","passed":true,"ts":1761300034.6}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":47.2,"load1":0.56,"mem_free_mb":2290,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300035}}
+{"name":"session","data":{"farm_id":"s-1a2b3c4d","devin_session_id":"devin-demo-a","node_name":"devin-s-1a2b3c4d","status":"running","acus":1.1,"title":"pico/led-sequence-trap","url":"https://app.devin.ai/sessions/demo-a","ts":1761300035}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":40.7,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300035.5}}
+{"name":"session_message","data":{"farm_id":"s-5e6f7a8b","source":"devin","text":"Heart frame confirmed by the camera: 1 cell off (tolerance 2), held 2.4 s.","ts":1761300035.5}}
+{"name":"lease","data":{"rig_id":"rig-1","device":"pico-1","lease_id":"L-a1","holder":"devin-s-1a2b3c4d","event":"renewed","expires_at":1761300336,"ts":1761300036}}
+{"name":"session","data":{"farm_id":"s-5e6f7a8b","devin_session_id":"devin-demo-b","node_name":"devin-s-5e6f7a8b","status":"running","acus":0.8,"title":"unoq/matrix-heart","url":"https://app.devin.ai/sessions/demo-b","ts":1761300036}}
+{"name":"run","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a2","state":"fetching","ts":1761300038}}
+{"name":"lease","data":{"rig_id":"rig-2","device":"pico-2","lease_id":"L-b2","holder":"devin-s-5e6f7a8b","event":"granted","token":1,"expires_at":1761300338,"ts":1761300038}}
+{"name":"device","data":{"rig_id":"rig-2","device":"pico-2","status":"leased","holder":"devin-s-5e6f7a8b","queue_depth":0,"ts":1761300038}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a2","text":"git fetch origin fix/led-steps","ts":1761300038.3}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a2","text":"HEAD is now at a07d5b8 write full LED mask per step","ts":1761300038.7}}
+{"name":"run","data":{"rig_id":"rig-2","device":"pico-2","run_id":"r-b2","state":"fetching","ts":1761300039}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":49,"load1":2.08,"mem_free_mb":1640,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300040}}
+{"name":"session","data":{"farm_id":"s-9c0d1e2f","devin_session_id":"devin-demo-c","node_name":"devin-s-9c0d1e2f","status":"running","acus":0.3,"title":"pico/led-sequence","url":"https://app.devin.ai/sessions/demo-c","ts":1761300040}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":40.6,"load1":0.7,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300040.5}}
+{"name":"run","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a2","state":"building","ts":1761300041}}
+{"name":"run","data":{"rig_id":"rig-2","device":"pico-2","run_id":"r-b2","state":"building","ts":1761300041}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a2","text":"cmake --build build -j4","ts":1761300041.2}}
+{"name":"log","data":{"rig_id":"rig-2","device":"pico-2","run_id":"r-b2","text":"cmake --build build -j4","ts":1761300041.3}}
+{"name":"lease","data":{"rig_id":"rig-1","device":"unoq-1","lease_id":"L-b1","holder":"devin-s-5e6f7a8b","event":"renewed","expires_at":1761300342,"ts":1761300042}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a2","text":"[100%] Linking led_seq.elf","ts":1761300042.5}}
+{"name":"log","data":{"rig_id":"rig-2","device":"pico-2","run_id":"r-b2","text":"picotool load ready.uf2 -f","ts":1761300042.5}}
+{"name":"run","data":{"rig_id":"rig-2","device":"pico-2","run_id":"r-b2","state":"running","ts":1761300043.5}}
+{"name":"log","data":{"rig_id":"rig-2","device":"pico-2","run_id":"r-b2","text":"boot: ready-probe v1","ts":1761300043.8}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a2","text":"picotool load led_seq.uf2 -f","ts":1761300043.8}}
+{"name":"log","data":{"rig_id":"rig-2","device":"pico-2","run_id":"r-b2","text":"uart ok","ts":1761300044.4}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":50.9,"load1":1.96,"mem_free_mb":1640,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300045}}
+{"name":"session","data":{"farm_id":"s-1a2b3c4d","devin_session_id":"devin-demo-a","node_name":"devin-s-1a2b3c4d","status":"running","acus":1.4,"title":"pico/led-sequence-trap","url":"https://app.devin.ai/sessions/demo-a","ts":1761300045}}
+{"name":"log","data":{"rig_id":"rig-2","device":"pico-2","run_id":"r-b2","text":"READY","ts":1761300045}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":40.6,"load1":0.7,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300045.5}}
+{"name":"run","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a2","state":"running","ts":1761300046}}
+{"name":"verify","data":{"rig_id":"rig-2","device":"pico-2","verify_id":"v-b2","state":"pending","ts":1761300046}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a2","text":"boot: led_seq v0.2","ts":1761300046.4}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a2","text":"step 1: mask=0b0101","ts":1761300047.2}}
+{"name":"verify","data":{"rig_id":"rig-2","device":"pico-2","verify_id":"v-b2","state":"done","results":[{"type":"log_contains","passed":true,"measured":{"line":"READY","line_no":9},"expected":{"pattern":"READY"},"detail":"matched in run log line 9 (not checked by camera)","self_reported":true}],"ts":1761300047.5}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a2","text":"step 2: mask=0b0010","ts":1761300048}}
+{"name":"session","data":{"farm_id":"s-5e6f7a8b","devin_session_id":"devin-demo-b","node_name":"devin-s-5e6f7a8b","status":"running","acus":1,"title":"unoq/matrix-heart","url":"https://app.devin.ai/sessions/demo-b","ts":1761300048}}
+{"name":"session_message","data":{"farm_id":"s-5e6f7a8b","source":"devin","text":"The READY check on rig-2/pico-2 only matched the serial log, so it is marked self-reported, not camera-confirmed.","ts":1761300048.5}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a2","text":"step 1: mask=0b0101","ts":1761300048.8}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a2","text":"step 2: mask=0b0010","ts":1761300049.6}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":52.8,"load1":1.97,"mem_free_mb":1640,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300050}}
+{"name":"verify","data":{"rig_id":"rig-1","device":"pico-1","verify_id":"v-a2","state":"pending","ts":1761300050}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":40.7,"load1":0.7,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300050.5}}
+{"name":"lease","data":{"rig_id":"rig-2","device":"pico-2","lease_id":"L-b2","holder":"devin-s-5e6f7a8b","event":"released","ts":1761300052}}
+{"name":"device","data":{"rig_id":"rig-2","device":"pico-2","status":"resetting","queue_depth":0,"ts":1761300052}}
+{"name":"verify","data":{"rig_id":"rig-1","device":"pico-1","verify_id":"v-a2","state":"done","results":[{"type":"led_sequence","target":"pico.leds","passed":true,"measured":{"steps":[{"on":[0,2],"ms":502},{"on":[1],"ms":497}],"repeats_matched":3},"expected":{"steps":[{"on":[0,2],"ms":500},{"on":[1],"ms":500}],"repeat":3,"tol_ms":80},"uncertainty":{"ms":33},"detail":"3 of 3 repeats matched within ±80 ms","self_reported":false}],"ts":1761300054}}
+{"name":"evidence","data":{"rig_id":"rig-1","device":"pico-1","evidence_id":"ev-a2-d93b58","passed":true,"ts":1761300054.6}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":54.4,"load1":2.1,"mem_free_mb":1640,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300055}}
+{"name":"session","data":{"farm_id":"s-1a2b3c4d","devin_session_id":"devin-demo-a","node_name":"devin-s-1a2b3c4d","status":"running","acus":1.6,"title":"pico/led-sequence-trap","url":"https://app.devin.ai/sessions/demo-a","ts":1761300055}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":40.9,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300055.5}}
+{"name":"session_message","data":{"farm_id":"s-1a2b3c4d","source":"devin","text":"Camera confirmed all 3 repeats (502 ms and 497 ms, ±33 ms). Opening the PR and releasing pico-1 for the next session.","ts":1761300056}}
+{"name":"device","data":{"rig_id":"rig-2","device":"pico-2","status":"free","queue_depth":0,"ts":1761300057}}
+{"name":"run","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-a2","state":"stopped","ts":1761300059}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":48.3,"load1":0.58,"mem_free_mb":2290,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300060}}
+{"name":"lease","data":{"rig_id":"rig-1","device":"pico-1","lease_id":"L-a1","holder":"devin-s-1a2b3c4d","event":"released","ts":1761300060}}
+{"name":"device","data":{"rig_id":"rig-1","device":"pico-1","status":"resetting","queue_depth":1,"ts":1761300060}}
+{"name":"session","data":{"farm_id":"s-5e6f7a8b","devin_session_id":"devin-demo-b","node_name":"devin-s-5e6f7a8b","status":"running","acus":1.2,"title":"unoq/matrix-heart","url":"https://app.devin.ai/sessions/demo-b","ts":1761300060}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":41.1,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300060.5}}
+{"name":"session","data":{"farm_id":"s-1a2b3c4d","devin_session_id":"devin-demo-a","node_name":"devin-s-1a2b3c4d","status":"finished","acus":1.7,"title":"pico/led-sequence-trap","url":"https://app.devin.ai/sessions/demo-a","ts":1761300062}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":47.9,"load1":0.59,"mem_free_mb":2290,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300065}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":41.3,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300065.5}}
+{"name":"device","data":{"rig_id":"rig-1","device":"pico-1","status":"free","queue_depth":1,"ts":1761300066}}
+{"name":"lease","data":{"rig_id":"rig-1","device":"pico-1","lease_id":"L-c1","holder":"devin-s-9c0d1e2f","event":"granted","token":18,"expires_at":1761300367,"ts":1761300067}}
+{"name":"device","data":{"rig_id":"rig-1","device":"pico-1","status":"leased","holder":"devin-s-9c0d1e2f","queue_depth":0,"ts":1761300067}}
+{"name":"session_message","data":{"farm_id":"s-9c0d1e2f","source":"devin","text":"Got pico-1 with token 18 after the idle check. Flashing now.","ts":1761300068}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":52,"load1":2.12,"mem_free_mb":1640,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300070}}
+{"name":"run","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-c1","state":"fetching","ts":1761300070}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-c1","text":"git fetch origin led-sequence","ts":1761300070.3}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":41.4,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300070.5}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-c1","text":"HEAD is now at 0bd44c2 LED sequence via mask table","ts":1761300070.7}}
+{"name":"run","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-c1","state":"building","ts":1761300073}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-c1","text":"cmake --build build -j4","ts":1761300073.2}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-c1","text":"[100%] Linking led_seq.elf","ts":1761300074.5}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":53.2,"load1":1.99,"mem_free_mb":1640,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300075}}
+{"name":"session","data":{"farm_id":"s-5e6f7a8b","devin_session_id":"devin-demo-b","node_name":"devin-s-5e6f7a8b","status":"running","acus":1.3,"title":"unoq/matrix-heart","url":"https://app.devin.ai/sessions/demo-b","ts":1761300075}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":41.4,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300075.5}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-c1","text":"picotool load led_seq.uf2 -f","ts":1761300075.8}}
+{"name":"run","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-c1","state":"running","ts":1761300078}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-c1","text":"boot: led_seq","ts":1761300078.4}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-c1","text":"READY","ts":1761300079.2}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":48.8,"load1":1.96,"mem_free_mb":1640,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300080}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-c1","text":"step 1: mask=0b0101","ts":1761300080}}
+{"name":"session","data":{"farm_id":"s-9c0d1e2f","devin_session_id":"devin-demo-c","node_name":"devin-s-9c0d1e2f","status":"running","acus":0.6,"title":"pico/led-sequence","url":"https://app.devin.ai/sessions/demo-c","ts":1761300080}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":41.2,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300080.5}}
+{"name":"log","data":{"rig_id":"rig-1","device":"pico-1","run_id":"r-c1","text":"step 2: mask=0b0010","ts":1761300080.8}}
+{"name":"verify","data":{"rig_id":"rig-1","device":"pico-1","verify_id":"v-c1","state":"pending","ts":1761300084}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":50.6,"load1":2.06,"mem_free_mb":1640,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300085}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":41,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300085.5}}
+{"name":"verify","data":{"rig_id":"rig-1","device":"pico-1","verify_id":"v-c1","state":"done","results":[{"type":"led_sequence","target":"pico.leds","passed":true,"measured":{"steps":[{"on":[0,2],"ms":499},{"on":[1],"ms":501}],"repeats_matched":3},"expected":{"steps":[{"on":[0,2],"ms":500},{"on":[1],"ms":500}],"repeat":3,"tol_ms":80},"uncertainty":{"ms":33},"detail":"3 of 3 repeats matched within ±80 ms","self_reported":false},{"type":"log_contains","passed":true,"measured":{"line":"READY","line_no":2},"expected":{"pattern":"READY"},"detail":"matched in run log line 2 (not checked by camera)","self_reported":true}],"ts":1761300088}}
+{"name":"evidence","data":{"rig_id":"rig-1","device":"pico-1","evidence_id":"ev-c1-12e8f7","passed":true,"ts":1761300088.6}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":48,"load1":0.55,"mem_free_mb":2290,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300090}}
+{"name":"session_message","data":{"farm_id":"s-9c0d1e2f","source":"devin","text":"Camera confirmed the sequence (499 ms and 501 ms, ±33 ms). Writing up the PR.","ts":1761300090}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":40.8,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300090.5}}
+{"name":"session_message","data":{"farm_id":"s-5e6f7a8b","source":"devin","text":"PR is up with the evidence link. Releasing unoq-1.","ts":1761300092}}
+{"name":"session","data":{"farm_id":"s-9c0d1e2f","devin_session_id":"devin-demo-c","node_name":"devin-s-9c0d1e2f","status":"running","acus":0.8,"title":"pico/led-sequence","url":"https://app.devin.ai/sessions/demo-c","ts":1761300092}}
+{"name":"run","data":{"rig_id":"rig-1","device":"unoq-1","run_id":"r-b1","state":"stopped","ts":1761300094}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":48.3,"load1":0.6,"mem_free_mb":2290,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300095}}
+{"name":"lease","data":{"rig_id":"rig-1","device":"unoq-1","lease_id":"L-b1","holder":"devin-s-5e6f7a8b","event":"released","ts":1761300095}}
+{"name":"device","data":{"rig_id":"rig-1","device":"unoq-1","status":"resetting","queue_depth":0,"ts":1761300095}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":40.6,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300095.5}}
+{"name":"session","data":{"farm_id":"s-5e6f7a8b","devin_session_id":"devin-demo-b","node_name":"devin-s-5e6f7a8b","status":"finished","acus":1.4,"title":"unoq/matrix-heart","url":"https://app.devin.ai/sessions/demo-b","ts":1761300096}}
+{"name":"lease","data":{"rig_id":"rig-1","device":"pico-1","lease_id":"L-c1","holder":"devin-s-9c0d1e2f","event":"renewed","expires_at":1761300397,"ts":1761300097}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":48.4,"load1":0.51,"mem_free_mb":2290,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300100}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":40.6,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300100.5}}
+{"name":"device","data":{"rig_id":"rig-1","device":"unoq-1","status":"free","queue_depth":0,"ts":1761300101}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":48.2,"load1":0.37,"mem_free_mb":2290,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300105}}
+{"name":"session","data":{"farm_id":"s-9c0d1e2f","devin_session_id":"devin-demo-c","node_name":"devin-s-9c0d1e2f","status":"running","acus":0.9,"title":"pico/led-sequence","url":"https://app.devin.ai/sessions/demo-c","ts":1761300105}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":40.7,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300105.5}}
+{"name":"session_message","data":{"farm_id":"s-9c0d1e2f","source":"user","text":"Looks good. Leave the board flashed, I want to watch it run.","ts":1761300108}}
+{"name":"rig_health","data":{"rig_id":"rig-1","temp_c":47.8,"load1":0.3,"mem_free_mb":2290,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300110}}
+{"name":"rig_health","data":{"rig_id":"rig-2","temp_c":40.9,"load1":0.1,"mem_free_mb":6000,"throttled":false,"camera_ok":true,"verifier_online":true,"ts":1761300110.5}}
