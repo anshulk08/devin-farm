@@ -79,15 +79,15 @@ Sessions can't reach each other, control, rig SSH, or port 8081 (admin).
 
 SSE events: `event: <name>`, `data: <json>`. Every payload has `rig_id`, `ts`.
 - `rig_health {temp_c, load1, mem_free_mb, throttled, camera_ok, verifier_online}` every 5 s
-- `device {device, status, holder?, queue_depth}`
-- `lease {device, lease_id, holder, event: "queued"|"granted"|"renewed"|"released"|"expired"|"revoked", position?}`
+- `device {device, status, holder?, queue_depth, reason?, idle_confirmed?}`. `reason` explains `offline`. `idle_confirmed: true` is set on the `resetting` → `free` transition after the verifier's `confirm_idle` passed (the map draws the camera tick from it).
+- `lease {device, lease_id, holder, event: "queued"|"granted"|"renewed"|"released"|"expired"|"revoked", position?, token?, expires_at?}`. `granted` carries `token` and `expires_at`; `renewed` carries the new `expires_at` (the map labels lease lines `tok 17 · 3:12 left`).
 - `run {device, run_id, state}`
 - `log {device, run_id, ts, text}` (rate-capped at 20/s)
 - `verify {device, verify_id, state, results?}`
 - `evidence {device, evidence_id, passed}`
 
 Control adds:
-- `session {farm_id, devin_session_id, node_name?, status, acus, title, url}`
+- `session {farm_id, devin_session_id, node_name?, status, acus, title, url, created_at}`. `created_at` orders sessions on the map, so a client that connects mid-run still sees them in creation order.
 - `session_message {farm_id, source: "user"|"devin", text, ts}`
 - `graph_snapshot {nodes, edges}` (on connect; see FRONTEND.md for the schema)
 
@@ -122,6 +122,8 @@ Result, one per assertion:
  "measured": {"steps": [{"on": [0,2], "ms": 498}, {"on": [0,1], "ms": 503}]}, "expected": {...},
  "uncertainty": {"ms": 33}, "detail": "step 2: LED 0 still on (expected only LED 1)", "self_reported": false}
 ```
+Suggested `measured` shapes the UI renders: `matrix_frame` → `{ascii: [rows], mismatched_cells, held_s}`; `log_contains` → `{line, line_no}`.
+
 No pass without a measured value. If the device is not visible (uncalibrated, camera down, drift), the result is `passed: false` with the reason.
 
 ## C7. Evidence bundle (stored on the rig, republished by control)
@@ -130,8 +132,11 @@ No pass without a measured value. If the device is not visible (uncalibrated, ca
 ```json
 {"evidence_id": "...", "rig_id": "rig-1", "device": "pico-1", "holder": "devin-s-1a2b3c4d", "farm_id": "s-1a2b3c4d",
  "repo_url": "...", "sha": "...", "run_id": "...", "verify_id": "...", "started_at": 0, "finished_at": 0,
- "results": [<C6 result>], "rig": {"temp_c": 0, "throttled": false}, "verifier_version": "..."}
+ "results": [<C6 result>], "rig": {"temp_c": 0, "throttled": false}, "verifier_version": "...",
+ "files": ["clip.mp4", "clip.gif", "frame-0.jpg", "..."], "sample": false}
 ```
+`files` lists the bundle's files so the evidence page and control don't have to probe. `sample: true` marks development fixtures; the page then labels the bundle as not camera footage.
+
 Public URL (control, Funnel): `https://<control>.<tailnet>.ts.net/e/<evidence_id>`, where `evidence_id` is 128-bit random. The clip has a burned-in overlay: assertion, measured value, verdict, timestamp, "recorded by the Farm camera".
 
 ## C8. Idle patterns (verifier calibrates and confirms from these)
@@ -153,11 +158,15 @@ outputs: [pico.leds]
 ## C10. Control API (`farm-control`, owner C; UI owner D consumes it)
 
 Operator port (tailnet only, `https://<control>.<tailnet>.ts.net` via `tailscale serve`; caller identity from the `Tailscale-User-Login` header, team only):
-- `GET /api/graph` → `{nodes, edges}` (FRONTEND.md §3)
+- `GET /api/graph` → `{nodes, edges}` (FRONTEND.md §3). Node `data` the UI relies on:
+  - rig: `status` is `"online"`, `"offline"` (control lost the rig) or `"maintenance"`; `data` carries the C1 health fields and `mock: true` for mock-driver rigs.
+  - device: `data.type` (`pico`/`unoq`), `data.order` (bench position, left to right, from the rig config), `data.snapshot_path`, `data.reason` when offline.
+  - session: `data.created_at`, `data.acus`, `data.url`, `data.node_name`.
 - `GET /api/events` → SSE: rig events (C4) merged and prefixed with `rig_id`, plus `session`, `session_message`
 - `GET /api/sessions` → `[{farm_id, devin_session_id, title, status, acus, node_name, online, leases: [...], url}]`
 - `GET /api/sessions/{farm_id}/messages` → `[{source, text, ts}]`
-- `POST /api/sessions` `{ticket_id, device_hint?, mode?: "normal", max_acu?: 5, extra_prompt?}` → `{farm_id, devin_session_id}`. Control mints the join key and calls Devin create-session with `session_secrets` (`TS_AUTHKEY`, `FARM_ID`), `playbook_id`, `max_acu_limit`, `tags`, and optionally `structured_output_schema` (C11).
+- `GET /api/tickets` → `[{ticket_id, title, device_type, outputs}]` (for the New session form)
+- `POST /api/sessions` `{ticket_id, device_hint?, mode?: "normal", max_acu?: 5, extra_prompt?}` (`device_hint` is a device id such as `pico-1`) → `{farm_id, devin_session_id}`. Control mints the join key and calls Devin create-session with `session_secrets` (`TS_AUTHKEY`, `FARM_ID`), `playbook_id`, `max_acu_limit`, `tags`, and optionally `structured_output_schema` (C11).
 - `POST /api/sessions/{farm_id}/message` `{text}` → 200 (Devin send-message)
 - `POST /api/sessions/{farm_id}/stop` → archive the session, revoke its leases on every rig, and delete its tailnet node
 - `POST /api/rigs/{rig_id}/devices/{id}/poll` → `{state, snapshot_url}` (fresh health + snapshot)
