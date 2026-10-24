@@ -6,3 +6,8 @@ __pycache__/
 .venv/
 dist/
 dist-public/
+
+# private ticket answers (kept out of the public repo; see validate.py)
+tickets/*/assertions.json
+tickets/*/NOTES-private.md
+tickets/*/reference/

@@ -1,0 +1,4 @@
+device_type: pico
+entry: main.py
+timeout_s: 120
+outputs: [pico.led]
