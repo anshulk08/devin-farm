@@ -32,5 +32,8 @@ export const api = {
   /** Cropped ROI snapshot, ≤ 1/s (C3, proxied by control). */
   snapshotUrl: (rigId: string, device: string, bust: number) => `${base}/rigs/${rigId}/devices/${device}/snapshot.jpg?t=${bust}`,
   /** Not in C10 yet: tickets list for the New session modal. Falls back to a static list. */
-  tickets: () => j<{ id: string; title: string; device_type: string }[]>("/api/tickets"),
+  tickets: () =>
+    j<{ ticket_id?: string; id?: string; title: string; device_type: string }[]>("/api/tickets").then((ts) =>
+      ts.map((t) => ({ id: t.ticket_id ?? t.id ?? t.title, title: t.title, device_type: t.device_type })),
+    ),
 };

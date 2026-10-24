@@ -27,6 +27,8 @@ export interface EvidenceBundle {
   rig: { temp_c: number; throttled: boolean };
   verifier_version: string;
   frames?: EvidenceFrame[];
+  /** Files in the bundle (proposed C7 addition, matches farm-control). */
+  files?: string[];
   /** True for fixtures and drawings. The page then says so above the fold. */
   sample?: boolean;
 }
@@ -112,7 +114,9 @@ const SAFE_FILE = /^[A-Za-z0-9_.-]+$/;
 /** Frames to show: the bundle's list when present, otherwise the C7 naming convention. */
 export function frameCandidates(b: EvidenceBundle, probe = 6): EvidenceFrame[] {
   if (b.frames && b.frames.length) return b.frames;
-  return Array.from({ length: probe }, (_, i) => ({ file: `frame-${i + 1}.jpg` }));
+  const listed = (b.files ?? []).filter((f) => /^frame-.*\.(jpe?g|png|svg)$/i.test(f)).sort((x, y) => x.localeCompare(y, undefined, { numeric: true }));
+  if (listed.length) return listed.map((file) => ({ file }));
+  return Array.from({ length: probe }, (_, i) => ({ file: `frame-${i}.jpg` })).concat({ file: `frame-${probe}.jpg` });
 }
 
 // ---------- verdicts ----------

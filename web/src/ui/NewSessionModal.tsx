@@ -94,10 +94,9 @@ function NewSessionDialog({ onClose }: { onClose: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      const { rigId, device } = hint ? splitDeviceId(hint) : { rigId: "", device: "" };
       await api.createSession({
         ticket_id: ticket.id,
-        device_hint: hint ? `${rigId}/${device}` : undefined,
+        device_hint: hint ? splitDeviceId(hint).device : undefined,
         max_acu: capNum,
         extra_prompt: extra.trim() || undefined,
       });
