@@ -1,0 +1,41 @@
+{
+  "evidence_id": "demo-pass",
+  "sample": true,
+  "rig_id": "rig-1",
+  "device": "pico-1",
+  "holder": "devin-s-1a2b3c4d",
+  "farm_id": "s-1a2b3c4d",
+  "repo_url": "https://github.com/anshulk08/farm-tickets",
+  "sha": "8d4f2b6e1a9c3e5f7b0d2a4c6e8f1b3d5a7c9e0f",
+  "run_id": "run-8a41",
+  "verify_id": "ver-2d5e",
+  "started_at": 1761300604.1,
+  "finished_at": 1761300611.7,
+  "results": [
+    {
+      "type": "led_sequence",
+      "target": "pico.leds",
+      "passed": true,
+      "expected": { "steps": [{ "on": [0, 2], "ms": 500 }, { "on": [1], "ms": 500 }], "repeat": 3, "tol_ms": 80 },
+      "measured": { "steps": [{ "on": [0, 2], "ms": 501 }, { "on": [1], "ms": 497 }], "repeat": 3 },
+      "uncertainty": { "ms": 33 },
+      "detail": "3 of 3 cycles matched, worst step error 4 ms",
+      "self_reported": false
+    },
+    {
+      "type": "log_contains",
+      "passed": true,
+      "expected": { "pattern": "READY" },
+      "measured": { "line": "READY: sequence started" },
+      "detail": "found in run log",
+      "self_reported": true
+    }
+  ],
+  "rig": { "temp_c": 59.1, "throttled": false },
+  "verifier_version": "farm-verifier 0.3.1 (sample)",
+  "frames": [
+    { "file": "frame-1.svg", "t_ms": 250, "caption": "Step 1: LED 0 and LED 2 on" },
+    { "file": "frame-2.svg", "t_ms": 750, "caption": "Step 2: only LED 1 on" },
+    { "file": "frame-3.svg", "t_ms": 1250, "caption": "Cycle 2, step 1" }
+  ]
+}
