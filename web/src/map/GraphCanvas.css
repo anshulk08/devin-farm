@@ -1,0 +1,46 @@
+.map {
+  position: absolute;
+  inset: 0;
+}
+/* The canvas (app.css) already paints the night-lab dot grid; React Flow stays transparent over it. */
+.map .react-flow,
+.map .react-flow.dark {
+  --xy-background-color: transparent;
+  --xy-edge-stroke: var(--line-strong);
+  background: transparent;
+}
+.map .react-flow__pane { cursor: grab; }
+.map .react-flow__pane.dragging { cursor: grabbing; }
+
+.map__empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  pointer-events: none;
+  color: var(--text-dim);
+  font-size: var(--fs-md);
+}
+.map__empty p { margin: 0; }
+.map__empty-sub { margin-top: 6px !important; font-size: var(--fs-sm); color: var(--text-faint); }
+
+.map-tip {
+  position: absolute;
+  z-index: 20;
+  min-width: 200px;
+  max-width: 320px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--panel-2);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+  pointer-events: none;
+  font-size: var(--fs-sm);
+  color: var(--text);
+}
+.map-tip__title { font-size: var(--fs-md); font-weight: 600; margin-bottom: 6px; }
+.map-tip__rows { margin: 0; display: grid; gap: 3px; }
+.map-tip__row { display: grid; grid-template-columns: 104px 1fr; gap: 10px; }
+.map-tip__row dt { color: var(--text-dim); }
+.map-tip__row dd { margin: 0; overflow-wrap: anywhere; }
