@@ -1,0 +1,23 @@
+/* App frame. Component styles live next to their components. */
+.app {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 1fr;
+}
+.canvas {
+  position: relative;
+  grid-row: 2;
+  min-height: 0;
+  /* faint dot grid that fades at the edges: the canvas reads as space */
+  background:
+    radial-gradient(ellipse at center, transparent 55%, var(--ground) 100%),
+    radial-gradient(circle, var(--dot) 1px, transparent 1.2px) 0 0 / 22px 22px,
+    var(--ground);
+}
+.app[data-drawer="open"] .canvas { margin-right: var(--drawer-w); transition: margin-right 0.25s var(--ease); }
+@media (max-width: 900px) {
+  .app[data-drawer="open"] .canvas { margin-right: 0; }
+}

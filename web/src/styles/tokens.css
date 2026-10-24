@@ -1,0 +1,63 @@
+/* Design tokens (FRONTEND §7). Colour semantics are never reused:
+   green = camera-confirmed, red = camera-contradicted, amber = self-reported/degraded/waiting, grey = offline.
+   Session hues are a separate palette with no blue (Uno Q matrix), green or red. */
+:root {
+  --ground: #0b0f14;
+  --ground-2: #0f141b;
+  --panel: #121821;
+  --panel-2: #18202b;
+  --line: #243040;
+  --line-strong: #34445a;
+  --dot: #1a2330;
+  --text: #d6dee8;
+  --text-dim: #8b97a7;
+  --text-faint: #5d6a7a;
+
+  --ok: #3dd68c;      /* confirmed by camera */
+  --bad: #f2555a;     /* contradicted by camera */
+  --warn: #f5b544;    /* self-reported / degraded / waiting */
+  --off: #5a6573;     /* offline */
+
+  --s0: #b48cff; /* violet */
+  --s1: #ff6fcf; /* magenta */
+  --s2: #ff9a4d; /* orange */
+  --s3: #e8d14a; /* gold */
+  --s4: #4fd6e0; /* cyan (sessions only; reads as distinct from matrix blue) */
+  --s5: #ff9fb2; /* pink */
+  --s6: #b9d36a; /* olive-lime, desaturated so it never reads as verdict green */
+  --s7: #c9b8ff; /* lavender */
+
+  --font-ui: "Inter Tight", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-lg: 19px;
+  --fs-xl: 24px;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 18px;
+
+  --drawer-w: 420px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--ground);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  -webkit-font-smoothing: antialiased;
+}
+.mono, code, kbd { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--s7); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}
