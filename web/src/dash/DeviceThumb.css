@@ -1,0 +1,43 @@
+.dt {
+  position: relative;
+  overflow: hidden;
+  background: #0b0c0e;
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+}
+.dt-card { aspect-ratio: 16 / 11; border-radius: 9px; width: 100%; }
+.dt-row { width: 72px; height: 58px; border-radius: 8px; flex: none; }
+.dt img, .dt svg:not([width]) { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dt-off { color: var(--text-faint); background: var(--ground-2); }
+.dt-wireframe { background: var(--ground-2); }
+
+/* illustration palette: a dim bench lit from above */
+.dt-bench { fill: #17181b; }
+.dt-bench-2 { fill: #121315; }
+.dt-cable { fill: none; stroke: #2b2d31; stroke-width: 7; stroke-linecap: round; }
+.dt-pcb { fill: #2e6a3c; stroke: #1f4d2b; stroke-width: 1; }
+.dt-pad { fill: #c9b26a; }
+.dt-usb { fill: #b9bcc2; }
+.dt-chip { fill: #1d1f22; }
+.dt-chip-2 { fill: #2a2c30; }
+.dt-btn { fill: #e9e9e9; }
+.dt-trace { stroke: #3f8a52; stroke-width: 1; fill: none; }
+.dt-strip { fill: #e6e3da; opacity: 0.16; }
+.dt-led { fill: #3a3c40; }
+.dt-led-on { fill: #ffe7a8; }
+.dt-glow { fill: #ffd36b; opacity: 0.28; filter: blur(2px); }
+.dt-uno { fill: #1a2a36; stroke: #24394a; }
+.dt-header { fill: #0f1012; }
+.dt-matrix-bg { fill: #0b1016; }
+.dt-px { fill: #141a24; }
+.dt-px.dim { fill: #1b2a44; }
+.dt-px.on { fill: #3b6bff; }
+.dt-matrix-glow .dt-px.on { fill: #2a55ff; opacity: 0.35; filter: blur(2.5px); }
+.dt-matrix-glow .dt-px:not(.on) { display: none; }
+
+/* wireframe drawing for mock-driver rigs */
+.dt-wire rect, .dt-wire circle:not(.dt-px) { fill: none; stroke: #4a4e56; stroke-width: 1.4; }
+.dt-wire .dt-wire-led.on { fill: #3b6bff; stroke: none; }
+.dt-wire .dt-wire-led { fill: none; }
+.dt-wire .dt-px.on { fill: #3b6bff; }

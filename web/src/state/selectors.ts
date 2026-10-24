@@ -10,11 +10,30 @@ export function sessionsOrdered(s: FarmState): GNode[] {
     .sort((a, b) => Number(a.data.created_at ?? 0) - Number(b.data.created_at ?? 0) || a.id.localeCompare(b.id));
 }
 
-/** Stable hue per session: hashed from the id so it never changes when others come and go. */
+// Session identity: a letter (A, B, C…) and a hue, assigned once in creation order and kept for the
+// life of the page, so a session never changes colour when others come and go.
+const slots = new Map<string, number>();
+
+/** Give every session a slot, oldest first. Idempotent; called by the store on each state. */
+export function syncSessionSlots(sessions: GNode[]): void {
+  for (const n of sessions) if (!slots.has(n.id)) slots.set(n.id, slots.size);
+}
+
+function slotOf(sessionId: string): number {
+  if (!slots.has(sessionId)) slots.set(sessionId, slots.size);
+  return slots.get(sessionId)!;
+}
+
+/** Hue order chosen so neighbours (A, B, C) contrast: violet, orange, cyan, pink, gold, magenta, tan, lavender. */
+const HUE_ORDER = [0, 2, 4, 5, 3, 1, 6, 7];
+
 export function sessionHue(sessionId: string): string {
-  let h = 0;
-  for (const c of sessionId) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return `var(${SESSION_HUES[h % SESSION_HUES.length]})`;
+  return `var(${SESSION_HUES[HUE_ORDER[slotOf(sessionId) % HUE_ORDER.length]]})`;
+}
+
+export function sessionLetter(sessionId: string): string {
+  const i = slotOf(sessionId);
+  return String.fromCharCode(65 + (i % 26)) + (i >= 26 ? String(Math.floor(i / 26)) : "");
 }
 
 export function rigs(s: FarmState): GNode[] {
